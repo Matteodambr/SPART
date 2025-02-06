@@ -1,4 +1,5 @@
-function [M0_tilde,Mm_tilde]=MCB(I0,Im,Bij,Bi0,robot)
+
+% function [M0_tilde,Mm_tilde]=MCB(I0,Im,Bij,Bi0,robot)
 % Computes the Mass Composite Body Matrix (MCB) of the multibody system.
 %
 % [M0_tilde,Mm_tilde]=MCB(I0,Im,Bij,Bi0,robot)
