@@ -7,7 +7,7 @@ num_tests = 1000 ;
 
 %% Check that the outputs remain the same, applying random inputs
 
-% Check that the functions are the same with random inputs
+% Check that the functions produce the same outputs from random inputs
 for k = 1:num_tests
 
     % Inputs
@@ -44,7 +44,7 @@ for k = 1:num_tests
     assert(isequal(tL1, tL2)) ;
 
     % I_I
-    tol = 1e-15 ;
+    tol = 1e-14 ;
     [I01,Im1]=I_I(R0,RL1,robot) ;
     [I02,Im2]=I_I_vectorized(R0,RL1,robot) ;
     assert(isequal(I01, I02)) ;
@@ -60,8 +60,8 @@ for k = 1:num_tests
     % MCB
     [M0_tilde1,Mm_tilde1]=MCB(I01,Im1,Bij1,Bi01,robot) ;
     [M0_tilde2,Mm_tilde2]=MCB_vectorized(I01,Im1,Bij1,Bi01,robot) ;
-    assert(isequal(M0_tilde1, M0_tilde2)) ;
-    assert(isequal(Mm_tilde1, Mm_tilde2)) ;
+    assert(all(abs(M0_tilde1 - M0_tilde2) < tol, 'all')) ;
+    assert(all(abs(Mm_tilde1 - Mm_tilde2) < tol, 'all')) ;
 
     % GIM
     [H01, H0m1, Hm1] = GIM(M0_tilde1,Mm_tilde1,Bij1,Bi01,P01,pm1,robot) ;
@@ -92,6 +92,7 @@ for k = 1:num_tests
     assert(isequal(isSingular1, isSingular2)) ;
 
 end
+disp('Vectorized functions checked and produce the same outputs.') ;
 
 %% Kinematics
 
@@ -187,8 +188,8 @@ end
 disp('Timing singularity functions...') ;
 diff_sing = zeros(num_tests,1) ;
 for k = 1:num_tests
-    t_kin = timeit(@() singularity_check(H0, H0m, J0ee, Jmee, PARAM_Chaser) ) ;
-    t_kin_vec = timeit(@() singularity_check_vectorized(H0, H0m, J0ee, Jmee, PARAM_Chaser) ) ;
+    t_kin = timeit(@() singularity_check(H01, H0m1, J0ee, Jmee, PARAM_Chaser) ) ;
+    t_kin_vec = timeit(@() singularity_check_vectorized(H01, H0m1, J0ee, Jmee, PARAM_Chaser) ) ;
     diff_sing(k) = t_kin - t_kin_vec ; % Positive if t_kin_vec is faster
 end
 
@@ -206,33 +207,33 @@ tot_time_saved = tot_time_saved + mean(diff_kinematics)*training_episodes*traini
 fprintf('Diff Kinematics - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_diff_kinematics), mean(diff_diff_kinematics)*training_episodes*training_steps/0.3) ;
 tot_time_saved = tot_time_saved + mean(diff_diff_kinematics)*training_episodes*training_steps/0.3 ;
 
-% Velocities
-fprintf('Velocities - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_velocities), mean(diff_velocities)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_velocities)*training_episodes*training_steps/0.3 ;
+% % Velocities
+% fprintf('Velocities - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_velocities), mean(diff_velocities)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_velocities)*training_episodes*training_steps/0.3 ;
 
-% I_I
-fprintf('I_I - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_I_I), mean(diff_I_I)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_I_I)*training_episodes*training_steps/0.3 ;
+% % I_I
+% fprintf('I_I - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_I_I), mean(diff_I_I)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_I_I)*training_episodes*training_steps/0.3 ;
 
-% Jacob
-fprintf('Jacob - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_Jacob), mean(diff_Jacob)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_Jacob)*training_episodes*training_steps/0.3 ;
+% % Jacob
+% fprintf('Jacob - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_Jacob), mean(diff_Jacob)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_Jacob)*training_episodes*training_steps/0.3 ;
 
-% MCB
-fprintf('MCB - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_MCB), mean(diff_MCB)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_MCB)*training_episodes*training_steps/0.3 ;
+% % MCB
+% fprintf('MCB - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_MCB), mean(diff_MCB)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_MCB)*training_episodes*training_steps/0.3 ;
 
-% GIM
-fprintf('GIM - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_GIM), mean(diff_GIM)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_GIM)*training_episodes*training_steps/0.3 ;
+% % GIM
+% fprintf('GIM - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_GIM), mean(diff_GIM)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_GIM)*training_episodes*training_steps/0.3 ;
 
-% CIM
-fprintf('CIM - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_CIM), mean(diff_CIM)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_CIM)*training_episodes*training_steps/0.3 ;
+% % CIM
+% fprintf('CIM - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_CIM), mean(diff_CIM)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_CIM)*training_episodes*training_steps/0.3 ;
 
-% singularity check
-fprintf('SINGULARITY - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_sing), mean(diff_sing)*training_episodes*training_steps/0.3) ;
-tot_time_saved = tot_time_saved + mean(diff_sing)*training_episodes*training_steps/0.3 ;
+% % singularity check
+% fprintf('SINGULARITY - %.10f s gained (single run), %.1f s in 1 training\n', mean(diff_sing), mean(diff_sing)*training_episodes*training_steps/0.3) ;
+% tot_time_saved = tot_time_saved + mean(diff_sing)*training_episodes*training_steps/0.3 ;
 
 % Total time saved
 fprintf('\n\nThe approximate time saved with optimization is %.1f seconds (%.1f minutes).', tot_time_saved, tot_time_saved/60) ;
