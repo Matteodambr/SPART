@@ -89,7 +89,7 @@ end
 
 % For joints:
 RJ = TJ(1:3,1:3,:);
-rJ = TJ(1:3,4,:);
+rJ = reshape(TJ(1:3,4,:), [3, n]);  % Keeping rJ as a 3xn matrix (rj1 as previously)
 
 % Assuming robot.joints is an array of structs with field 'axis'.
 % Stack the joint axes into a 3xn matrix.
@@ -102,15 +102,15 @@ e = reshape(e, 3, []);
 
 % For links:
 RL = TL(1:3,1:3,:);
-rL = TL(1:3,4,:);
+rL = reshape(TL(1:3,4,:), [3, n]);  % Similarly reshape rL to be 3xn.
 
 % Vectorize g = rL - rJ(:,parent_joint_index) for each link.
 % First, extract the parent joint indices for each link.
 parent_joints = [robot.links.parent_joint];
-rJ_parent = rJ(:,:,1);  % preallocate a matrix for rJ of parent joints
+rJ_parent = zeros(3, n, 'like', R0);
 for i = 1:n
     rJ_parent(:,i) = rJ(:, parent_joints(i));
 end
-g = rL(:,:,1) - rJ_parent;
+g = rL - rJ_parent;
 
 end
