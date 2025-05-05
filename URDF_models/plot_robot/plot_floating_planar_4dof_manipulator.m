@@ -1,4 +1,4 @@
-function plotPlanarRobot(config)
+function plot_floating_planar_4dof_manipulator(config)
     % plotPlanarRobott Visualizes a 2D floating-base planar 4-DOF manipulator.
     %
     %   Input:
@@ -7,6 +7,9 @@ function plotPlanarRobot(config)
         % Validate input
         if numel(config) ~= 7
             error('Expected 7-element config: [x, y, theta, q1, q2, q3, q4]');
+        end
+        if any(config(3:end)>2*pi | config(3:end)<2*pi)
+            warning('Detected angles >2pi or <2pi. Make sure inputs to plot_floating_planar_4dof_manipulator.m are in radians!') ;
         end
         x = config(1); y = config(2); theta = config(3);
         q = config(4:end)';
