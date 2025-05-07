@@ -1,0 +1,56 @@
+# CompilerName=gcc
+# Mode=optim
+ninja_required_version = 1.3
+
+# Basic folders
+root = .
+builddir = $root/build/glnxa64
+matlabdir = /usr/local/MATLAB/R2025a
+startdir = /home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics
+
+# Toolchain information
+cc = /usr/bin/gcc
+cxx = /usr/bin/g++
+linker = /usr/bin/gcc
+linkerxx = /usr/bin/g++
+
+cflags =  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I "$root" -I "$startdir" -I "$root/interface" -I "$matlabdir/extern/include" -I "." -DMODEL=CIM_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c -fopenmp -DOMPLIBNAME="$matlabdir/sys/os/glnxa64/libiomp5.so" 
+
+cxxflags =  -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c++11 -I "$root" -I "$startdir" -I "$root/interface" -I "$matlabdir/extern/include" -I "." -DMODEL=CIM_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c -fopenmp -DOMPLIBNAME="$matlabdir/sys/os/glnxa64/libiomp5.so" 
+
+ldflags =  -pthread -Wl,--no-undefined -Wl,-rpath-link,$matlabdir/bin/glnxa64 -shared  -L"$matlabdir/bin/glnxa64" -lmx -lmex -lmat -lm -lstdc++  -Wl,-Bsymbolic -o CIM_mex.mexa64 -lemlrt -lcovrt -lut -lmwmathutil -fPIC -L"$matlabdir/sys/os/glnxa64" -liomp5 -Wl,--version-script,CIM.map
+
+ldxxflags =  -pthread -Wl,--no-undefined  -shared -lstdc++ -Wl,--as-needed -Wl,-rpath-link,$matlabdir/bin/glnxa64 -L"$matlabdir/bin/glnxa64" -Wl,-rpath-link,$matlabdir/extern/bin/glnxa64 -L"$matlabdir/extern/bin/glnxa64" -lMatlabDataArray -lmx -lmex -lm -lmat  -Wl,-Bsymbolic -o CIM_mex.mexa64 -lemlrt -lcovrt -lut -lmwmathutil -fPIC -L"$matlabdir/sys/os/glnxa64" -liomp5 -Wl,--version-script,CIM.map
+
+linkobjs = 
+
+# Build Rules
+rule cc
+    command = $cc $cflags $in -o $out
+
+rule cxx
+    command = $cxx $cxxflags $in -o $out
+
+rule link
+    command = $linker $in $linkobjs $ldflags
+
+rule linkxx
+    command = $linkerxx $in $linkobjs $ldxxflags
+
+# Build
+build $builddir/CIM_data.o : cc $root/CIM_data.c
+build $builddir/rt_nonfinite.o : cc $root/rt_nonfinite.c
+build $builddir/CIM_initialize.o : cc $root/CIM_initialize.c
+build $builddir/CIM_terminate.o : cc $root/CIM_terminate.c
+build $builddir/CIM.o : cc $root/CIM.c
+build $builddir/find.o : cc $root/find.c
+build $builddir/indexShapeCheck.o : cc $root/indexShapeCheck.c
+build $builddir/_coder_CIM_api.o : cc $root/interface/_coder_CIM_api.c
+build $builddir/_coder_CIM_mex.o : cc $root/interface/_coder_CIM_mex.c
+build $builddir/eml_int_forloop_overflow_check.o : cc $root/eml_int_forloop_overflow_check.c
+build $builddir/CIM_emxutil.o : cc $root/CIM_emxutil.c
+build $builddir/_coder_CIM_info.o : cc $root/interface/_coder_CIM_info.c
+build $builddir/c_mexapi_version.o : cc $matlabdir/extern/version/c_mexapi_version.c
+
+# Link
+build $root/CIM_mex.mexa64 : link $builddir/CIM_data.o $builddir/rt_nonfinite.o $builddir/CIM_initialize.o $builddir/CIM_terminate.o $builddir/CIM.o $builddir/find.o $builddir/indexShapeCheck.o $builddir/_coder_CIM_api.o $builddir/_coder_CIM_mex.o $builddir/eml_int_forloop_overflow_check.o $builddir/CIM_emxutil.o $builddir/_coder_CIM_info.o $builddir/c_mexapi_version.o 

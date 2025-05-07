@@ -1,0 +1,62 @@
+[
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Velocities_data.c -o build/glnxa64/Velocities_data.o",
+    "file": "Velocities_data.c",
+    "output": "build/glnxa64/Velocities_data.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  rt_nonfinite.c -o build/glnxa64/rt_nonfinite.o",
+    "file": "rt_nonfinite.c",
+    "output": "build/glnxa64/rt_nonfinite.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Velocities_initialize.c -o build/glnxa64/Velocities_initialize.o",
+    "file": "Velocities_initialize.c",
+    "output": "build/glnxa64/Velocities_initialize.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Velocities_terminate.c -o build/glnxa64/Velocities_terminate.o",
+    "file": "Velocities_terminate.c",
+    "output": "build/glnxa64/Velocities_terminate.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Velocities.c -o build/glnxa64/Velocities.o",
+    "file": "Velocities.c",
+    "output": "build/glnxa64/Velocities.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  interface/_coder_Velocities_api.c -o build/glnxa64/_coder_Velocities_api.o",
+    "file": "interface/_coder_Velocities_api.c",
+    "output": "build/glnxa64/_coder_Velocities_api.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  interface/_coder_Velocities_mex.c -o build/glnxa64/_coder_Velocities_mex.o",
+    "file": "interface/_coder_Velocities_mex.c",
+    "output": "build/glnxa64/_coder_Velocities_mex.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Velocities_emxutil.c -o build/glnxa64/Velocities_emxutil.o",
+    "file": "Velocities_emxutil.c",
+    "output": "build/glnxa64/Velocities_emxutil.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  interface/_coder_Velocities_info.c -o build/glnxa64/_coder_Velocities_info.o",
+    "file": "interface/_coder_Velocities_info.c",
+    "output": "build/glnxa64/_coder_Velocities_info.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Velocities",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Velocities_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  /usr/local/MATLAB/R2025a/extern/version/c_mexapi_version.c -o build/glnxa64/c_mexapi_version.o",
+    "file": "/usr/local/MATLAB/R2025a/extern/version/c_mexapi_version.c",
+    "output": "build/glnxa64/c_mexapi_version.o"
+  }
+]

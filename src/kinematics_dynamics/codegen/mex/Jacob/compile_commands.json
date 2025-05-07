@@ -1,0 +1,62 @@
+[
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Jacob_data.c -o build/glnxa64/Jacob_data.o",
+    "file": "Jacob_data.c",
+    "output": "build/glnxa64/Jacob_data.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  rt_nonfinite.c -o build/glnxa64/rt_nonfinite.o",
+    "file": "rt_nonfinite.c",
+    "output": "build/glnxa64/rt_nonfinite.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Jacob_initialize.c -o build/glnxa64/Jacob_initialize.o",
+    "file": "Jacob_initialize.c",
+    "output": "build/glnxa64/Jacob_initialize.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Jacob_terminate.c -o build/glnxa64/Jacob_terminate.o",
+    "file": "Jacob_terminate.c",
+    "output": "build/glnxa64/Jacob_terminate.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Jacob.c -o build/glnxa64/Jacob.o",
+    "file": "Jacob.c",
+    "output": "build/glnxa64/Jacob.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  interface/_coder_Jacob_api.c -o build/glnxa64/_coder_Jacob_api.o",
+    "file": "interface/_coder_Jacob_api.c",
+    "output": "build/glnxa64/_coder_Jacob_api.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  interface/_coder_Jacob_mex.c -o build/glnxa64/_coder_Jacob_mex.o",
+    "file": "interface/_coder_Jacob_mex.c",
+    "output": "build/glnxa64/_coder_Jacob_mex.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  Jacob_emxutil.c -o build/glnxa64/Jacob_emxutil.o",
+    "file": "Jacob_emxutil.c",
+    "output": "build/glnxa64/Jacob_emxutil.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  interface/_coder_Jacob_info.c -o build/glnxa64/_coder_Jacob_info.o",
+    "file": "interface/_coder_Jacob_info.c",
+    "output": "build/glnxa64/_coder_Jacob_info.o"
+  },
+  {
+    "directory": "/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics/codegen/mex/Jacob",
+    "command": "/usr/bin/gcc -fexceptions -fPIC -fno-omit-frame-pointer -pthread -fwrapv -D_GNU_SOURCE -DMATLAB_MEX_FILE  -O2 -DNDEBUG -fno-predictive-commoning -std=c99 -I \".\" -I \"/home/mdambrosio/Desktop/Github/AITOP_MPC/src/SPART/src/kinematics_dynamics\" -I \"./interface\" -I \"/usr/local/MATLAB/R2025a/extern/include\" -I \".\" -DMODEL=Jacob_mex -msse2 -fno-predictive-commoning -Wno-stringop-overflow -Wno-maybe-uninitialized -c  /usr/local/MATLAB/R2025a/extern/version/c_mexapi_version.c -o build/glnxa64/c_mexapi_version.o",
+    "file": "/usr/local/MATLAB/R2025a/extern/version/c_mexapi_version.c",
+    "output": "build/glnxa64/c_mexapi_version.o"
+  }
+]
