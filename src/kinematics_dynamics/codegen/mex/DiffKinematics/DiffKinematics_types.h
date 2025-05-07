@@ -88,6 +88,17 @@ typedef struct {
 } emxArray_struct1_T;
 #endif /* typedef_emxArray_struct1_T */
 
+#ifndef typedef_emxArray_struct2_T
+#define typedef_emxArray_struct2_T
+typedef struct {
+  struct2_T *data;
+  int32_T *size;
+  int32_T allocatedSize;
+  int32_T numDimensions;
+  boolean_T canFreeData;
+} emxArray_struct2_T;
+#endif /* typedef_emxArray_struct2_T */
+
 #ifndef typedef_struct4_T
 #define typedef_struct4_T
 typedef struct {
@@ -104,7 +115,7 @@ typedef struct {
   real_T n_q;
   real_T n_links_joints;
   emxArray_struct1_T *links;
-  struct2_T joints[4];
+  emxArray_struct2_T *joints;
   struct3_T base_link;
   struct4_T con;
 } struct0_T;

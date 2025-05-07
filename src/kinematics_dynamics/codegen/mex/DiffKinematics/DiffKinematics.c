@@ -291,8 +291,8 @@ static emlrtBCInfo q_emlrtBCI = {
 };
 
 static emlrtBCInfo r_emlrtBCI = {
-    1,                /* iFirst */
-    4,                /* iLast */
+    -1,               /* iFirst */
+    -1,               /* iLast */
     82,               /* lineNo */
     21,               /* colNo */
     "robot.joints",   /* aName */
@@ -659,12 +659,14 @@ void DiffKinematics(const emlrtStack *sp, const real_T R0[9],
                                 (int32_T)robot->n_links_joints, &d_emlrtRTEI,
                                 (emlrtConstCTX)sp);
   for (c_i = 0; c_i < i1; c_i++) {
-    if ((int32_T)((uint32_T)c_i + 1U) > 4) {
-      emlrtDynamicBoundsCheckR2012b((int32_T)((uint32_T)c_i + 1U), 1, 4,
-                                    &r_emlrtBCI, (emlrtConstCTX)sp);
+    boolean_T b;
+    b = ((int32_T)((uint32_T)c_i + 1U) > robot->joints->size[1]);
+    if (b) {
+      emlrtDynamicBoundsCheckR2012b((int32_T)((uint32_T)c_i + 1U), 1,
+                                    robot->joints->size[1], &r_emlrtBCI,
+                                    (emlrtConstCTX)sp);
     }
-    n = robot->joints[c_i].type;
-    if (n == 1.0) {
+    if (robot->joints->data[c_i].type == 1.0) {
       /* Revolute joint */
       if (c_i + 1 > e->size[1]) {
         emlrtDynamicBoundsCheckR2012b(c_i + 1, 1, e->size[1], &e_emlrtBCI,
@@ -695,7 +697,7 @@ void DiffKinematics(const emlrtStack *sp, const real_T R0[9],
           g_data[3 * c_i] * e_data[P0_tmp] - e_data[3 * c_i] * g_data[P0_tmp];
       Bij_data[6 * c_i + 5] =
           e_data[3 * c_i] * g_data[loop_ub] - g_data[3 * c_i] * e_data[loop_ub];
-    } else if (n == 2.0) {
+    } else if (robot->joints->data[c_i].type == 2.0) {
       /* Prismatic joint */
       if ((int32_T)((uint32_T)c_i + 1U) > e->size[1]) {
         emlrtDynamicBoundsCheckR2012b((int32_T)((uint32_T)c_i + 1U), 1,
@@ -713,7 +715,7 @@ void DiffKinematics(const emlrtStack *sp, const real_T R0[9],
       Bij_data[6 * c_i + 4] = e_data[3 * c_i + 1];
       Bij_data[6 * c_i + 2] = 0.0;
       Bij_data[6 * c_i + 5] = e_data[3 * c_i + 2];
-    } else if (n == 0.0) {
+    } else if (robot->joints->data[c_i].type == 0.0) {
       /* Fixed joint */
       if ((int32_T)((uint32_T)c_i + 1U) > pm->size[1]) {
         emlrtDynamicBoundsCheckR2012b((int32_T)((uint32_T)c_i + 1U), 1,

@@ -93,7 +93,7 @@ static void m_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
 
 static void n_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
                                const emlrtMsgIdentifier *parentId,
-                               struct2_T y[4]);
+                               emxArray_struct2_T *y);
 
 static void o_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
                                const emlrtMsgIdentifier *parentId, real_T y[3]);
@@ -468,141 +468,60 @@ static void m_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
 
 static void n_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
                                const emlrtMsgIdentifier *parentId,
-                               struct2_T y[4])
+                               emxArray_struct2_T *y)
 {
-  static const int32_T dims[2] = {1, 4};
+  static const int32_T dims[2] = {1, -1};
   static const char_T *fieldNames[7] = {
       "id", "type", "q_id", "parent_link", "child_link", "axis", "T"};
   emlrtMsgIdentifier thisId;
+  struct2_T *y_data;
+  int32_T sizes[2];
+  int32_T i;
+  boolean_T bv[2] = {false, true};
   thisId.fParent = parentId;
   thisId.bParentIsCell = false;
-  emlrtCheckStructR2012b((emlrtConstCTX)sp, parentId, u, 7,
-                         (const char_T **)&fieldNames[0], 2U,
-                         (const void *)&dims[0]);
-  thisId.fIdentifier = "id";
-  y[0].id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 0, "id")),
-      &thisId);
-  thisId.fIdentifier = "type";
-  y[0].type = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 1, "type")),
-      &thisId);
-  thisId.fIdentifier = "q_id";
-  y[0].q_id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 2, "q_id")),
-      &thisId);
-  thisId.fIdentifier = "parent_link";
-  y[0].parent_link =
-      j_emlrt_marshallIn(sp,
-                         emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0,
-                                                        3, "parent_link")),
-                         &thisId);
-  thisId.fIdentifier = "child_link";
-  y[0].child_link = j_emlrt_marshallIn(
-      sp,
-      emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 4, "child_link")),
-      &thisId);
-  thisId.fIdentifier = "axis";
-  o_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 5, "axis")),
-      &thisId, y[0].axis);
-  thisId.fIdentifier = "T";
-  l_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 6, "T")),
-      &thisId, y[0].T);
-  thisId.fIdentifier = "id";
-  y[1].id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1, 0, "id")),
-      &thisId);
-  thisId.fIdentifier = "type";
-  y[1].type = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1, 1, "type")),
-      &thisId);
-  thisId.fIdentifier = "q_id";
-  y[1].q_id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1, 2, "q_id")),
-      &thisId);
-  thisId.fIdentifier = "parent_link";
-  y[1].parent_link =
-      j_emlrt_marshallIn(sp,
-                         emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1,
-                                                        3, "parent_link")),
-                         &thisId);
-  thisId.fIdentifier = "child_link";
-  y[1].child_link = j_emlrt_marshallIn(
-      sp,
-      emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1, 4, "child_link")),
-      &thisId);
-  thisId.fIdentifier = "axis";
-  o_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1, 5, "axis")),
-      &thisId, y[1].axis);
-  thisId.fIdentifier = "T";
-  l_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 1, 6, "T")),
-      &thisId, y[1].T);
-  thisId.fIdentifier = "id";
-  y[2].id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2, 0, "id")),
-      &thisId);
-  thisId.fIdentifier = "type";
-  y[2].type = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2, 1, "type")),
-      &thisId);
-  thisId.fIdentifier = "q_id";
-  y[2].q_id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2, 2, "q_id")),
-      &thisId);
-  thisId.fIdentifier = "parent_link";
-  y[2].parent_link =
-      j_emlrt_marshallIn(sp,
-                         emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2,
-                                                        3, "parent_link")),
-                         &thisId);
-  thisId.fIdentifier = "child_link";
-  y[2].child_link = j_emlrt_marshallIn(
-      sp,
-      emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2, 4, "child_link")),
-      &thisId);
-  thisId.fIdentifier = "axis";
-  o_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2, 5, "axis")),
-      &thisId, y[2].axis);
-  thisId.fIdentifier = "T";
-  l_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 2, 6, "T")),
-      &thisId, y[2].T);
-  thisId.fIdentifier = "id";
-  y[3].id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3, 0, "id")),
-      &thisId);
-  thisId.fIdentifier = "type";
-  y[3].type = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3, 1, "type")),
-      &thisId);
-  thisId.fIdentifier = "q_id";
-  y[3].q_id = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3, 2, "q_id")),
-      &thisId);
-  thisId.fIdentifier = "parent_link";
-  y[3].parent_link =
-      j_emlrt_marshallIn(sp,
-                         emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3,
-                                                        3, "parent_link")),
-                         &thisId);
-  thisId.fIdentifier = "child_link";
-  y[3].child_link = j_emlrt_marshallIn(
-      sp,
-      emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3, 4, "child_link")),
-      &thisId);
-  thisId.fIdentifier = "axis";
-  o_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3, 5, "axis")),
-      &thisId, y[3].axis);
-  thisId.fIdentifier = "T";
-  l_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 3, 6, "T")),
-      &thisId, y[3].T);
+  emlrtCheckVsStructR2012b((emlrtCTX)sp, parentId, u, 7,
+                           (const char_T **)&fieldNames[0], 2U,
+                           (const void *)&dims[0], &bv[0], &sizes[0]);
+  i = y->size[0] * y->size[1];
+  y->size[0] = sizes[0];
+  y->size[1] = sizes[1];
+  emxEnsureCapacity_struct2_T(sp, y, i, (emlrtRTEInfo *)NULL);
+  y_data = y->data;
+  for (i = 0; i < sizes[1]; i++) {
+    thisId.fIdentifier = "id";
+    y_data[i].id = j_emlrt_marshallIn(
+        sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, i, 0, "id")),
+        &thisId);
+    thisId.fIdentifier = "type";
+    y_data[i].type = j_emlrt_marshallIn(
+        sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, i, 1, "type")),
+        &thisId);
+    thisId.fIdentifier = "q_id";
+    y_data[i].q_id = j_emlrt_marshallIn(
+        sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, i, 2, "q_id")),
+        &thisId);
+    thisId.fIdentifier = "parent_link";
+    y_data[i].parent_link =
+        j_emlrt_marshallIn(sp,
+                           emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u,
+                                                          i, 3, "parent_link")),
+                           &thisId);
+    thisId.fIdentifier = "child_link";
+    y_data[i].child_link =
+        j_emlrt_marshallIn(sp,
+                           emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u,
+                                                          i, 4, "child_link")),
+                           &thisId);
+    thisId.fIdentifier = "axis";
+    o_emlrt_marshallIn(
+        sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, i, 5, "axis")),
+        &thisId, y_data[i].axis);
+    thisId.fIdentifier = "T";
+    l_emlrt_marshallIn(
+        sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, i, 6, "T")),
+        &thisId, y_data[i].T);
+  }
   emlrtDestroyArray(&u);
 }
 

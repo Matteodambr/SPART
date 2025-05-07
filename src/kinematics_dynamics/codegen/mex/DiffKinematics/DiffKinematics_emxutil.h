@@ -33,6 +33,10 @@ void emxEnsureCapacity_struct1_T(const emlrtStack *sp,
                                  emxArray_struct1_T *emxArray, int32_T oldNumel,
                                  const emlrtRTEInfo *srcLocation);
 
+void emxEnsureCapacity_struct2_T(const emlrtStack *sp,
+                                 emxArray_struct2_T *emxArray, int32_T oldNumel,
+                                 const emlrtRTEInfo *srcLocation);
+
 void emxFreeStruct_struct0_T(const emlrtStack *sp, struct0_T *pStruct);
 
 void emxFreeStruct_struct4_T(const emlrtStack *sp, struct4_T *pStruct);
@@ -42,6 +46,8 @@ void emxFree_char_T(const emlrtStack *sp, emxArray_char_T **pEmxArray);
 void emxFree_real_T(const emlrtStack *sp, emxArray_real_T **pEmxArray);
 
 void emxFree_struct1_T(const emlrtStack *sp, emxArray_struct1_T **pEmxArray);
+
+void emxFree_struct2_T(const emlrtStack *sp, emxArray_struct2_T **pEmxArray);
 
 void emxInitStruct_struct0_T(const emlrtStack *sp, struct0_T *pStruct,
                              const emlrtRTEInfo *srcLocation);
@@ -56,6 +62,9 @@ void emxInit_real_T(const emlrtStack *sp, emxArray_real_T **pEmxArray,
                     int32_T numDimensions, const emlrtRTEInfo *srcLocation);
 
 void emxInit_struct1_T(const emlrtStack *sp, emxArray_struct1_T **pEmxArray,
+                       const emlrtRTEInfo *srcLocation);
+
+void emxInit_struct2_T(const emlrtStack *sp, emxArray_struct2_T **pEmxArray,
                        const emlrtRTEInfo *srcLocation);
 
 /* End of code generation (DiffKinematics_emxutil.h) */

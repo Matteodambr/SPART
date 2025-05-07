@@ -309,13 +309,12 @@ static void h_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
                                const emlrtMsgIdentifier *parentId, struct0_T *y)
 {
   static const int32_T dims = 0;
-  static const char_T *fieldNames[8] = {"name",  "n_q",    "n_links_joints",
-                                        "links", "joints", "base_link",
-                                        "con",   "f1"};
+  static const char_T *fieldNames[7] = {
+      "name", "n_q", "n_links_joints", "links", "joints", "base_link", "con"};
   emlrtMsgIdentifier thisId;
   thisId.fParent = parentId;
   thisId.bParentIsCell = false;
-  emlrtCheckStructR2012b((emlrtConstCTX)sp, parentId, u, 8,
+  emlrtCheckStructR2012b((emlrtConstCTX)sp, parentId, u, 7,
                          (const char_T **)&fieldNames[0], 0U,
                          (const void *)&dims);
   thisId.fIdentifier = "name";
@@ -349,10 +348,6 @@ static void h_emlrt_marshallIn(const emlrtStack *sp, const mxArray *u,
   q_emlrt_marshallIn(
       sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 6, "con")),
       &thisId, &y->con);
-  thisId.fIdentifier = "f1";
-  y->f1 = j_emlrt_marshallIn(
-      sp, emlrtAlias(emlrtGetFieldR2017b((emlrtConstCTX)sp, u, 0, 7, "f1")),
-      &thisId);
   emlrtDestroyArray(&u);
 }
 

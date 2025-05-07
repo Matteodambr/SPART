@@ -118,7 +118,6 @@ typedef struct {
   emxArray_struct2_T *joints;
   struct3_T base_link;
   struct4_T con;
-  real_T f1;
 } struct0_T;
 #endif /* typedef_struct0_T */
 
