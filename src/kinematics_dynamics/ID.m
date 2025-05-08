@@ -47,6 +47,7 @@ function [tau0,taum] = ID(wF0,wFm,t0,tL,t0dot,tLdot,P0,pm,I0,Im,Bij,Bi0,robot)
 
 %--- Number of links and Joints ---%
 n=robot.n_links_joints;
+n_active=robot.n_q;
 
 %--- Mdot ---%
 %base-link Mdot
@@ -68,7 +69,7 @@ wq0=[I0,zeros(3,3);zeros(3,3),robot.base_link.mass*eye(3)]*t0dot+Mdot0*t0-wF0;
 wq=zeros(6,n,'like',wF0);
 
 %Manipulator
-for i=1:n
+for i=1:n_active
     wq(1:6,i)=[Im(1:3,1:3,i),zeros(3,3);zeros(3,3),robot.links(i).mass*eye(3)]*tLdot(1:6,i)+Mdot(1:6,1:6,i)*tL(1:6,i)-wFm(1:6,i);
 end
 
@@ -80,15 +81,19 @@ for i=n:-1:1
     %Initialize wq_tilde
     wq_tilde(1:6,i)=wq(1:6,i);
     %Add children contributions
-    for j=find(robot.con.child(:,i))'
-        wq_tilde(1:6,i)=wq_tilde(1:6,i)+Bij(1:6,1:6,j,i)'*wq_tilde(1:6,j);
+    for j=1:n
+        if robot.con.child(j,i) ~= 0
+            wq_tilde(1:6,i)=wq_tilde(1:6,i)+Bij(1:6,1:6,j,i)'*wq_tilde(1:6,j);
+        end
     end
 end
 %Base-link
 wq_tilde0=wq0;
 %Add children contributions
-for j=find(robot.con.child_base)'
-    wq_tilde0=wq_tilde0+Bi0(1:6,1:6,j)'*wq_tilde(1:6,j);
+for j=1:n
+    if robot.con.child_base(j) ~= 0
+        wq_tilde0=wq_tilde0+Bi0(1:6,1:6,j)'*wq_tilde(1:6,j);
+    end
 end
 
 %---- Joint forces ---%
