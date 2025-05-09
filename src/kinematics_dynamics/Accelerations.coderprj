@@ -1527,6 +1527,236 @@
                   <Size type="coderapp.internal.codertype.Dimension"/>
                   <Size type="coderapp.internal.codertype.Dimension"/>
                 </Types>
+                <Types id="282" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="283" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="284" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="285" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="286" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="287" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                </Types>
+                <Types id="288" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="289" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                </Types>
+                <Types id="290" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>4</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>4</Length>
+                  </Size>
+                </Types>
+                <Types id="291" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="292" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="293" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>char</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="294" type="coderapp.internal.codertype.StructType">
+                  <Fields id="295" type="coderapp.internal.codertype.Property">
+                    <Name>id</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="296" type="coderapp.internal.codertype.Property">
+                    <Name>parent_joint</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="297" type="coderapp.internal.codertype.Property">
+                    <Name>T</Name>
+                    <Type id="290" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="298" type="coderapp.internal.codertype.Property">
+                    <Name>mass</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="299" type="coderapp.internal.codertype.Property">
+                    <Name>inertia</Name>
+                    <Type id="289" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="300" type="coderapp.internal.codertype.StructType">
+                  <Fields id="301" type="coderapp.internal.codertype.Property">
+                    <Name>id</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="302" type="coderapp.internal.codertype.Property">
+                    <Name>type</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="303" type="coderapp.internal.codertype.Property">
+                    <Name>q_id</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="304" type="coderapp.internal.codertype.Property">
+                    <Name>parent_link</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="305" type="coderapp.internal.codertype.Property">
+                    <Name>child_link</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="306" type="coderapp.internal.codertype.Property">
+                    <Name>axis</Name>
+                    <Type id="291" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="307" type="coderapp.internal.codertype.Property">
+                    <Name>T</Name>
+                    <Type id="290" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="308" type="coderapp.internal.codertype.StructType">
+                  <Fields id="309" type="coderapp.internal.codertype.Property">
+                    <Name>mass</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="310" type="coderapp.internal.codertype.Property">
+                    <Name>inertia</Name>
+                    <Type id="289" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="311" type="coderapp.internal.codertype.StructType">
+                  <Fields id="312" type="coderapp.internal.codertype.Property">
+                    <Name>branch</Name>
+                    <Type id="292" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="313" type="coderapp.internal.codertype.Property">
+                    <Name>child</Name>
+                    <Type id="292" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="314" type="coderapp.internal.codertype.Property">
+                    <Name>child_base</Name>
+                    <Type id="283" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="315" type="coderapp.internal.codertype.StructType">
+                  <Fields id="316" type="coderapp.internal.codertype.Property">
+                    <Name>name</Name>
+                    <Type id="293" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="317" type="coderapp.internal.codertype.Property">
+                    <Name>n_q</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="318" type="coderapp.internal.codertype.Property">
+                    <Name>n_links_joints</Name>
+                    <Type id="288" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="319" type="coderapp.internal.codertype.Property">
+                    <Name>links</Name>
+                    <Type id="294" type="coderapp.internal.codertype.StructType"/>
+                  </Fields>
+                  <Fields id="320" type="coderapp.internal.codertype.Property">
+                    <Name>joints</Name>
+                    <Type id="300" type="coderapp.internal.codertype.StructType"/>
+                  </Fields>
+                  <Fields id="321" type="coderapp.internal.codertype.Property">
+                    <Name>base_link</Name>
+                    <Type id="308" type="coderapp.internal.codertype.StructType"/>
+                  </Fields>
+                  <Fields id="322" type="coderapp.internal.codertype.Property">
+                    <Name>con</Name>
+                    <Type id="311" type="coderapp.internal.codertype.StructType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
               </Types>
             </coderapp.internal.interface.project.Interface>
           </MF0>
@@ -1566,7 +1796,7 @@
                 </Artifacts>
                 <BuildFolder type="coderapp.internal.util.mfz.FileSpec"/>
                 <Success>true</Success>
-                <Timestamp>2025-05-09T11:32:08</Timestamp>
+                <Timestamp>2025-05-09T11:44:26</Timestamp>
               </MainBuildResult>
             </coderapp.internal.mlc.mfz.MatlabCoderProjectState>
           </MF0>
