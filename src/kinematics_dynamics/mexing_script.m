@@ -1,5 +1,7 @@
 % Script using all functions to be mexed, for code generation
 
+clearvars ; close all ; clc ; beep off ; 
+
 %% NOTE: WHEN MEXING FUNCTIONS, ANY DIMENSION THAT IS VARIABLE MUST BE SET 
 %        TO INF, AND NOT TO A SPECIFIC NUMBER. OTHERWISE THE FUNCTION WILL
 %        ONLY WORK FOR THAT SPECIFIC SIZE.
@@ -89,6 +91,7 @@ for k = 1:length(robot_models)
     [J0ee, Jmee] = Jacob(p_ee, r0, rL, P0, pm, robot.n_links_joints, robot);
     [J0ee_mex, Jmee_mex] = Jacob_mex(p_ee, r0, rL, P0, pm, robot.n_links_joints, robot);
     
+    % Check Jacob outputs
     if ~isapprox(J0ee, J0ee_mex, tol) || ~isapprox(Jmee, Jmee_mex, tol)
         disp('  ❌ Jacob and Jacob_mex outputs differ');
         model_passed = false;
@@ -96,13 +99,70 @@ for k = 1:length(robot_models)
         disp('  ✅ Jacob: PASSED');
     end
 
-    % Add final result for this model
+    % Mass composite body matrix
+    [M0_tilde, Mm_tilde] = MCB(I0, Im, Bij, Bi0, robot);
+    [M0_tilde_mex, Mm_tilde_mex] = MCB_mex(I0, Im, Bij, Bi0, robot);
+    
+    % Check MCB outputs
+    if ~isapprox(M0_tilde, M0_tilde_mex, tol) || ~isapprox(Mm_tilde, Mm_tilde_mex, tol)
+        disp('  ❌ MCB and MCB_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ MCB: PASSED');
+    end
+
+    % Generalized inertia matrix
+    [H0, H0m, Hm] = GIM(M0_tilde, Mm_tilde, Bij, Bi0, P0, pm, robot);
+    [H0_mex, H0m_mex, Hm_mex] = GIM_mex(M0_tilde, Mm_tilde, Bij, Bi0, P0, pm, robot);
+    
+    % Check GIM outputs
+    if ~isapprox(H0, H0_mex, tol) || ~isapprox(H0m, H0m_mex, tol) || ~isapprox(Hm, Hm_mex, tol)
+        disp('  ❌ GIM and GIM_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ GIM: PASSED');
+    end
+
+    % Convective inertia matrix
+    [C0, C0m, Cm0, Cm] = CIM(t0,tL,I0,Im,M0_tilde,Mm_tilde,Bij,Bi0,P0,pm,robot);
+    [C0_mex, C0m_mex, Cm0_mex, Cm_mex] = CIM_mex(t0,tL,I0,Im,M0_tilde,Mm_tilde,Bij,Bi0,P0,pm,robot);
+    
+    % Check CIM outputs
+    if ~isapprox(C0, C0_mex, tol) || ~isapprox(C0m, C0m_mex, tol) || ...
+       ~isapprox(Cm0, Cm0_mex, tol) || ~isapprox(Cm, Cm_mex, tol)
+        disp('  ❌ CIM and CIM_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ CIM: PASSED');
+    end
+
+    % Dynamic Jstar
+    jstar = Jstar(H0, H0m, J0ee, Jmee);
+    jstar_mex = Jstar_mex(H0_mex, H0m_mex, J0ee_mex, Jmee_mex);
+    
+    % Check Jstar outputs
+    if ~isapprox(jstar, jstar_mex, tol)
+        disp('  ❌ Jstar and Jstar_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ Jstar: PASSED');
+    end
+    
+    % Print overall result for this model
     if model_passed
         disp(['✅ All checks with model ', robot_models{k}, ' PASSED', newline]);
     else
         disp(['❌ Some tests FAILED for model ', robot_models{k}, newline]);
         all_passed = false;
     end
+
+end
+
+% Display final overall result
+if all_passed
+    disp('✅ ALL TESTS PASSED FOR ALL MODELS');
+else
+    disp('❌ SOME TESTS FAILED');
 end
 
 % Add helper function for approximate comparison
