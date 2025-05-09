@@ -26,6 +26,10 @@ for k = 1:length(robot_models)
     qm = rand(robot.n_q, 1) ;
     q0_dot = rand(6, 1) ;
     qm_dot = rand(robot.n_q, 1) ;
+    tau0 = rand(6, 1) ;
+    taum = rand(robot.n_q, 1) ;
+    wF0 = rand(6, 1) ;
+    wFm = rand(6, robot.n_q) ;
 
     % Kinematics
     [RJ, RL, rJ, rL, e, g] = Kinematics(R0, r0, qm, robot) ;
@@ -147,7 +151,37 @@ for k = 1:length(robot_models)
     else
         disp('  ✅ Jstar: PASSED');
     end
-    
+
+    % Forward dynamics
+    [u0dot, umdot] = FD(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um, robot) ;
+    [u0dot_mex, umdot_mex] = FD_mex(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um, robot) ;
+    if ~isapprox(u0dot, u0dot_mex, tol) || ~isapprox(umdot, umdot_mex, tol)
+        disp('  ❌ FD and FD_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ FD: PASSED');
+    end
+
+    % Accelerations
+    [t0dot, tLdot] = Accelerations(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot, robot) ;
+    [t0dot_mex, tLdot_mex] = Accelerations_mex(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot, robot) ;
+    if ~isapprox(t0dot, t0dot_mex, tol) || ~isapprox(tLdot, tLdot_mex, tol)
+        disp('  ❌ Accelerations and Accelerations_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ Accelerations: PASSED');
+    end
+
+    % Backward dynamics
+    [tau0, taum] = ID(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0, robot) ;
+    [tau0_mex, taum_mex] = ID_mex(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0, robot) ;
+    if ~isapprox(tau0, tau0_mex, tol) || ~isapprox(taum, taum_mex, tol)
+        disp('  ❌ ID and ID_mex outputs differ');
+        model_passed = false;
+    else
+        disp('  ✅ ID: PASSED');
+    end
+
     % Print overall result for this model
     if model_passed
         disp(['✅ All checks with model ', robot_models{k}, ' PASSED', newline]);
