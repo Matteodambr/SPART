@@ -8,6 +8,9 @@ function plot_floating_planar_4dof_manipulator(config, robot, color, FLAG_CREATE
         if numel(config) ~= 7
             error('Expected 7-element config: [x, y, theta, q1, q2, q3, q4]');
         end
+        if size(config,2) == 1
+            config = config' ;
+        end
         if any(config(3:end)>2*pi | config(3:end)<-2*pi)
             warning('Detected angles >2pi or <2pi. Make sure inputs to plot_floating_planar_4dof_manipulator.m are in radians!') ;
         end
@@ -62,10 +65,10 @@ function plot_floating_planar_4dof_manipulator(config, robot, color, FLAG_CREATE
             figure;
         end
         hold on;
-        plot(base2D(1,:), base2D(2,:), '-', 'LineWidth', 2, Color=color);         % base
-        plot(points(1,:), points(2,:), '-', 'LineWidth', 1.5, Color=color);       % links
-        scatter(joints(:,1), joints(:,2), 50, color, 'filled');         % joints
-        scatter(points(1,end), points(2,end), 80, 'red', 'filled');     % end-effector as red dot
+        plot(base2D(1,:), base2D(2,:), '-', 'LineWidth', 2, Color=color, HandleVisibility='off');         % base
+        plot(points(1,:), points(2,:), '-', 'LineWidth', 1.5, Color=color, HandleVisibility='off');       % links
+        scatter(joints(:,1), joints(:,2), 50, color, 'filled', HandleVisibility='off');         % joints
+        scatter(points(1,end), points(2,end), 80, 'red', 'filled', HandleVisibility='off');     % end-effector as red dot
         
         % Labels
         if FLAG_CREATE_NEW_FIG
