@@ -1,4 +1,4 @@
-function plot_floating_planar_4dof_manipulator(config, robot)
+function plot_floating_planar_4dof_manipulator(config, robot, color, FLAG_CREATE_NEW_FIG)
     % plotPlanarRobott Visualizes a 2D floating-base planar 4-DOF manipulator.
     %
     %   Input:
@@ -7,6 +7,9 @@ function plot_floating_planar_4dof_manipulator(config, robot)
         % Validate input
         if numel(config) ~= 7
             error('Expected 7-element config: [x, y, theta, q1, q2, q3, q4]');
+        end
+        if size(config,2) == 1
+            config = config' ;
         end
         if any(config(3:end)>2*pi | config(3:end)<-2*pi)
             warning('Detected angles >2pi or <2pi. Make sure inputs to plot_floating_planar_4dof_manipulator.m are in radians!') ;
@@ -58,19 +61,25 @@ function plot_floating_planar_4dof_manipulator(config, robot)
         base2D = base_world(1:2, :);
     
         % Plotting
-        figure; hold on; axis equal; grid on;
-        plot(base2D(1,:), base2D(2,:), 'k-', 'LineWidth', 2);         % base
-        plot(points(1,:), points(2,:), 'k-', 'LineWidth', 1.5);       % links
-        scatter(joints(:,1), joints(:,2), 50, 'k', 'filled');         % joints
-    
+        if FLAG_CREATE_NEW_FIG
+            figure;
+        end
+        hold on;
+        plot(base2D(1,:), base2D(2,:), '-', 'LineWidth', 2, Color=color, HandleVisibility='off');         % base
+        plot(points(1,:), points(2,:), '-', 'LineWidth', 1.5, Color=color, HandleVisibility='off');       % links
+        scatter(joints(:,1), joints(:,2), 50, color, 'filled', HandleVisibility='off');         % joints
+        scatter(points(1,end), points(2,end), 80, 'red', 'filled', HandleVisibility='off');     % end-effector as red dot
+        
         % Labels
-        title('Planar Floating-Base Robot');
-        xlabel('X (m)'); ylabel('Y (m)');
-        all_x = [points(1,:), base2D(1,:)];
-        all_y = [points(2,:), base2D(2,:)];
-        padding = 0.5;
-        xlim([min(all_x)-padding, max(all_x)+padding]);
-        ylim([min(all_y)-padding, max(all_y)+padding]);
-        hold off;
+        if FLAG_CREATE_NEW_FIG
+            title('Planar Floating-Base Robot');
+            xlabel('X (m)'); ylabel('Y (m)');
+            all_x = [points(1,:), base2D(1,:)];
+            all_y = [points(2,:), base2D(2,:)];
+            padding = 0.5;
+            xlim([min(all_x)-padding, max(all_x)+padding]);
+            ylim([min(all_y)-padding, max(all_y)+padding]);
+            axis equal; grid on;
+        end
+        
     end
-    

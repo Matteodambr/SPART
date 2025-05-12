@@ -1,4 +1,16 @@
 function [RJ,RL,rJ,rL,e,g]=Kinematics(R0,r0,qm,robot)
+
+% NOTE!!!!! THE R0 MATRIX INPUTTED MUST BE THE ONE BODY -> INERTIAL, NOT THE TYPICAL INERTIAL -> BODY!
+
+
+
+
+
+
+
+
+
+
 % Computes the kinematics -- positions and orientations -- of the multibody system.
 %
 % [RJ,RL,rJ,rL,e,g]=Kinematics(R0,r0,qm,robot)
