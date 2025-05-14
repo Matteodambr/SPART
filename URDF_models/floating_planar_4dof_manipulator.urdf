@@ -31,12 +31,6 @@
         </geometry>
         <material name="Grey"/>
     </visual>
-    <collision>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
-        <geometry>
-            <box size="0.5 0.5 0"/> <!-- Updated size to 50cm side -->
-        </geometry>
-    </collision>
   </link>
 
   <!--Manipulator-->
@@ -64,10 +58,35 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <!-- Spherical collisions along the link -->
     <collision>
-      <origin rpy="0 1.570796 0" xyz="0.25 0 0"/>
+      <origin rpy="0 0 0" xyz="0.05 0 0"/>
       <geometry>
-        <cylinder radius="0.05" length="0.5"/>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.15 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.25 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.35 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.45 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
       </geometry>
     </collision>
   </link>
@@ -95,10 +114,35 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <!-- Spherical collisions along the link -->
     <collision>
-      <origin rpy="0 1.570796 0" xyz="0.25 0 0"/>
+      <origin rpy="0 0 0" xyz="0.05 0 0"/>
       <geometry>
-        <cylinder radius="0.05" length="0.5"/>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.15 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.25 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.35 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.45 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
       </geometry>
     </collision>
   </link>
@@ -126,10 +170,35 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <!-- Spherical collisions along the link -->
     <collision>
-      <origin rpy="0 1.570796 0" xyz="0.25 0 0"/>
+      <origin rpy="0 0 0" xyz="0.05 0 0"/>
       <geometry>
-        <cylinder radius="0.05" length="0.5"/>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.15 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.25 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.35 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.45 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
       </geometry>
     </collision>
   </link>
@@ -157,10 +226,35 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <!-- Spherical collisions along the link -->
     <collision>
-      <origin rpy="0 1.570796 0" xyz="0.25 0 0"/>
+      <origin rpy="0 0 0" xyz="0.05 0 0"/>
       <geometry>
-        <cylinder radius="0.05" length="0.5"/>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.15 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.25 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.35 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.45 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
       </geometry>
     </collision>
   </link>
@@ -186,10 +280,11 @@
       </geometry>
       <material name="Red"/>
     </visual>
+    <!-- Spherical collision at center (same as above, for clarity) -->
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <sphere radius="0.05"/>
+        <sphere radius="0.03"/>
       </geometry>
     </collision>
   </link>
