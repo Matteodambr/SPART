@@ -6,10 +6,7 @@ function x_skew = SkewSym_casadi(x)
 %
 % Output:
 %   x_skew -- [3x3] skew-symmetric matrix of x
-
-import casadi.*
-
-x_skew = SX.zeros(3,3);
+x_skew = casadi.SX.zeros(3,3);
 
 x_skew(1,2) = -x(3);
 x_skew(1,3) =  x(2);

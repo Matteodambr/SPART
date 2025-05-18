@@ -1,9 +1,24 @@
 function [Bij, Bi0, P0, pm] = DiffKinematics_casadi(R0, r0, rL, e, g, robot)
-    import casadi.*
+
+    % Determine if inputs are symbolic (casadi) or numeric
+    is_symbolic = isa(R0, 'casadi.SX') || isa(R0, 'casadi.MX') || isa(r0, 'casadi.SX') || isa(r0, 'casadi.MX') || ...
+                  isa(rL, 'casadi.SX') || isa(rL, 'casadi.MX') || isa(e, 'casadi.SX') || isa(e, 'casadi.MX') || ...
+                  isa(g, 'casadi.SX') || isa(g, 'casadi.MX');
+
+    if is_symbolic
+        zeros6n = @(m,n) casadi.SX.zeros(m,n);
+        zeros3n = @(m,n) casadi.SX.zeros(m,n);
+        eye3 = @() casadi.SX.eye(3);
+    else
+        zeros6n = @(m,n) zeros(m,n);
+        zeros3n = @(m,n) zeros(m,n);
+        eye3 = @() eye(3);
+    end
+    cross_fn = @(a,b) cross(a,b);
 
     n = robot.n_links_joints;
 
-    % Preallocate Bij as a cell array of size n x n, each element 6x6 SX
+    % Preallocate Bij as a cell array of size n x n, each element 6x6
     Bij = cell(n, n);
 
     % Compute Bij
@@ -11,11 +26,10 @@ function [Bij, Bi0, P0, pm] = DiffKinematics_casadi(R0, r0, rL, e, g, robot)
         for i = 1:n
             if robot.con.branch(i, j) == 1
                 % Links are in the same branch
-                skew_mat = SkewSym_casadi(rL(:, j) - rL(:, i));
-                Bij{i, j} = [eye(3), zeros(3, 3); skew_mat, eye(3)];
+                skew_mat = SkewSym(rL(:, j) - rL(:, i));
+                Bij{i, j} = [eye3(), zeros3n(3, 3); skew_mat, eye3()];
             else
-                % Links are not in the same branch
-                Bij{i, j} = SX.zeros(6, 6);
+                Bij{i, j} = zeros6n(6, 6);
             end
         end
     end
@@ -25,31 +39,23 @@ function [Bij, Bi0, P0, pm] = DiffKinematics_casadi(R0, r0, rL, e, g, robot)
 
     % Compute Bi0
     for i = 1:n
-        skew_mat = SkewSym_casadi(r0 - rL(:, i));
-        Bi0{i} = [eye(3), zeros(3, 3); skew_mat, eye(3)];
+        skew_mat = SkewSym(r0 - rL(:, i));
+        Bi0{i} = [eye3(), zeros3n(3, 3); skew_mat, eye3()];
     end
 
     % Twist-propagation vectors
-    pm = SX.zeros(6, n);
+    pm = zeros6n(6, n);
 
     % Base-link twist-propagation matrix
-    P0 = [R0, zeros(3, 3); zeros(3, 3), eye(3)];
+    P0 = [R0, zeros3n(3, 3); zeros3n(3, 3), eye3()];
 
     for i = 1:n
         if robot.joints(i).type == 1  % Revolute
-            pm(:, i) = [e(:, i); cross(e(:, i), g(:, i))];
+            pm(:, i) = [e(:, i); cross_fn(e(:, i), g(:, i))];
         elseif robot.joints(i).type == 2  % Prismatic
-            pm(:, i) = [zeros(3, 1); e(:, i)];
+            pm(:, i) = [zeros3n(3, 1); e(:, i)];
         elseif robot.joints(i).type == 0  % Fixed
-            pm(:, i) = zeros(6, 1);
+            pm(:, i) = zeros6n(6, 1);
         end
     end
-end
-
-% Helper function for skew symmetric matrix compatible with CasADi
-function S = SkewSym_casadi(v)
-    % v is a 3x1 vector (SX)
-    S = [    0, -v(3),  v(2);
-          v(3),     0, -v(1);
-         -v(2),  v(1),    0];
 end

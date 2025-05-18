@@ -1,10 +1,18 @@
 function [t0, tL] = Velocities_casadi(Bij, Bi0, P0, pm, u0, um, robot)
-    import casadi.*
+
+    % Determine if inputs are symbolic (casadi) or numeric
+    is_symbolic = isa(P0, 'casadi.SX') || isa(P0, 'casadi.MX') || isa(u0, 'casadi.SX') || isa(u0, 'casadi.MX');
+
+    if is_symbolic
+        zeros6n = @(m,n) casadi.SX.zeros(m,n);
+    else
+        zeros6n = @(m,n) zeros(m,n);
+    end
 
     n = robot.n_links_joints;
 
-    % Pre-allocate tL as SX matrix 6 x n
-    tL = SX.zeros(6, n);
+    % Pre-allocate tL as 6 x n
+    tL = zeros6n(6, n);
 
     % Base-link twist
     t0 = P0 * u0;
