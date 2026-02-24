@@ -1,8 +1,14 @@
-function [nLinksJoints, nq, robotName, jointsMatrix, linksMatrix] = urdf2robot_py(filename)
+function [nLinksJoints, nq, robotName, jointsMatrix, linksMatrix, ...
+          conBranch, conChild, conChildBase, baseMass, baseInertia] = urdf2robot_py(filename)
 % Returns robot data as plain numeric matrices for use with the Python engine.
 %
-% jointsMatrix: [24 x n] each column = [id; type; q_id; parent_link; child_link; axis(3x1); T(16x1)]
-% linksMatrix:  [28 x n] each column = [id; parent_joint; T(16x1); mass; inertia(9x1)]
+% jointsMatrix:  [24 x n]  [id; type; q_id; parent_link; child_link; axis(3x1); T(16x1)]
+% linksMatrix:   [28 x n]  [id; parent_joint; T(16x1); mass; inertia(9x1)]
+% conBranch:     [n  x n]  robot.con.branch connectivity matrix
+% conChild:      [n  x n]  robot.con.child  connectivity matrix
+% conChildBase:  [n  x 1]  robot.con.child_base connectivity vector
+% baseMass:      scalar    robot.base_link.mass
+% baseInertia:   [9  x 1]  robot.base_link.inertia(:) column-major
 
 [robot, ~] = urdf2robot(filename) ;
 
@@ -23,5 +29,11 @@ for i = 1:n
     l = robot.links(i) ;
     linksMatrix(:, i) = [l.id; l.parent_joint; l.T(:); l.mass; l.inertia(:)] ;
 end
+
+conBranch    = robot.con.branch ;
+conChild     = robot.con.child ;
+conChildBase = robot.con.child_base(:) ;
+baseMass     = robot.base_link.mass ;
+baseInertia  = robot.base_link.inertia(:) ;
 
 end

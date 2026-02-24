@@ -4,8 +4,13 @@
     <layer id="core" version="R2025a">
       <parts>
         <part role="testRepository">
-          <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b" version="1.1">
-            <coderapp.internal.core.mfz.TestRepositoryState id="1" type="coderapp.internal.core.mfz.TestRepositoryState"/>
+          <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_config_datamodel/R2021a.001 http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_form_datamodel/R2020a http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b http://schema.mathworks.com/mf0/coderapp_utils_datamodel/R2020a" version="1.1">
+            <coderapp.internal.core.mfz.TestRepositoryState id="1" type="coderapp.internal.core.mfz.TestRepositoryState">
+              <Tests type="coderapp.internal.core.mfz.TestSpec">
+                <Type>FILE</Type>
+                <Value>/home/mdambrosio/Desktop/Github/SPART/PySPART/example_robot_import_matlabCheck.m</Value>
+              </Tests>
+            </coderapp.internal.core.mfz.TestRepositoryState>
           </MF0>
         </part>
       </parts>
@@ -48,10 +53,356 @@
                 </File>
                 <Name>Kinematics_C</Name>
               </EntryPoints>
-              <SizeConstraints id="16" type="coderapp.internal.interface.project.SizeConstraints">
+              <EntryPoints id="16" type="coderapp.internal.interface.project.EntryPointFunction">
+                <Signatures id="17" type="coderapp.internal.interface.project.FunctionSignature">
+                  <Inputs id="18" type="coderapp.internal.interface.project.Input">
+                    <Name>R0</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="19" type="coderapp.internal.interface.project.Input">
+                    <Name>r0</Name>
+                    <Type id="7" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="20" type="coderapp.internal.interface.project.Input">
+                    <Name>rL</Name>
+                    <Type id="21" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="22" type="coderapp.internal.interface.project.Input">
+                    <Name>e</Name>
+                    <Type id="21" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="23" type="coderapp.internal.interface.project.Input">
+                    <Name>g</Name>
+                    <Type id="21" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="24" type="coderapp.internal.interface.project.Input">
+                    <Name>nLinksJoints</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="25" type="coderapp.internal.interface.project.Input">
+                    <Name>robotConBranch</Name>
+                    <Type id="26" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="27" type="coderapp.internal.interface.project.Input">
+                    <Name>robotJoints</Name>
+                    <Type id="13" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <NumOutputs>4</NumOutputs>
+                </Signatures>
+                <File type="coderapp.internal.util.mfz.FileSpec">
+                  <Path>src/kinematics_dynamics/DiffKinematics_C.m</Path>
+                </File>
+                <Name>DiffKinematics_C</Name>
+              </EntryPoints>
+              <EntryPoints id="28" type="coderapp.internal.interface.project.EntryPointFunction">
+                <Signatures id="29" type="coderapp.internal.interface.project.FunctionSignature">
+                  <Inputs id="30" type="coderapp.internal.interface.project.Input">
+                    <Name>Bij</Name>
+                    <Type id="31" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="32" type="coderapp.internal.interface.project.Input">
+                    <Name>Bi0</Name>
+                    <Type id="33" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="34" type="coderapp.internal.interface.project.Input">
+                    <Name>P0</Name>
+                    <Type id="35" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="36" type="coderapp.internal.interface.project.Input">
+                    <Name>pm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="38" type="coderapp.internal.interface.project.Input">
+                    <Name>u0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="40" type="coderapp.internal.interface.project.Input">
+                    <Name>um</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="41" type="coderapp.internal.interface.project.Input">
+                    <Name>nLinksJoints</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="42" type="coderapp.internal.interface.project.Input">
+                    <Name>robotJoints</Name>
+                    <Type id="13" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <NumOutputs>2</NumOutputs>
+                </Signatures>
+                <File type="coderapp.internal.util.mfz.FileSpec">
+                  <Path>src/kinematics_dynamics/Velocities_C.m</Path>
+                </File>
+                <Name>Velocities_C</Name>
+              </EntryPoints>
+              <EntryPoints id="43" type="coderapp.internal.interface.project.EntryPointFunction">
+                <Signatures id="44" type="coderapp.internal.interface.project.FunctionSignature">
+                  <Inputs id="45" type="coderapp.internal.interface.project.Input">
+                    <Name>R0</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="46" type="coderapp.internal.interface.project.Input">
+                    <Name>RL</Name>
+                    <Type id="21" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="47" type="coderapp.internal.interface.project.Input">
+                    <Name>nLinksJoints</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="48" type="coderapp.internal.interface.project.Input">
+                    <Name>robotBaseInertia</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="49" type="coderapp.internal.interface.project.Input">
+                    <Name>robotLinks</Name>
+                    <Type id="15" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <NumOutputs>2</NumOutputs>
+                </Signatures>
+                <File type="coderapp.internal.util.mfz.FileSpec">
+                  <Path>src/kinematics_dynamics/I_I_C.m</Path>
+                </File>
+                <Name>I_I_C</Name>
+              </EntryPoints>
+              <EntryPoints id="50" type="coderapp.internal.interface.project.EntryPointFunction">
+                <Signatures id="51" type="coderapp.internal.interface.project.FunctionSignature">
+                  <Inputs id="52" type="coderapp.internal.interface.project.Input">
+                    <Name>t0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="53" type="coderapp.internal.interface.project.Input">
+                    <Name>tL</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="54" type="coderapp.internal.interface.project.Input">
+                    <Name>P0</Name>
+                    <Type id="35" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="55" type="coderapp.internal.interface.project.Input">
+                    <Name>pm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="56" type="coderapp.internal.interface.project.Input">
+                    <Name>Bi0</Name>
+                    <Type id="33" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="57" type="coderapp.internal.interface.project.Input">
+                    <Name>Bij</Name>
+                    <Type id="31" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="58" type="coderapp.internal.interface.project.Input">
+                    <Name>u0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="59" type="coderapp.internal.interface.project.Input">
+                    <Name>um</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="60" type="coderapp.internal.interface.project.Input">
+                    <Name>u0dot</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="61" type="coderapp.internal.interface.project.Input">
+                    <Name>umdot</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="62" type="coderapp.internal.interface.project.Input">
+                    <Name>nLinksJoints</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="63" type="coderapp.internal.interface.project.Input">
+                    <Name>robotJoints</Name>
+                    <Type id="13" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <NumOutputs>2</NumOutputs>
+                </Signatures>
+                <File type="coderapp.internal.util.mfz.FileSpec">
+                  <Path>src/kinematics_dynamics/Accelerations_C.m</Path>
+                </File>
+                <Name>Accelerations_C</Name>
+              </EntryPoints>
+              <EntryPoints id="64" type="coderapp.internal.interface.project.EntryPointFunction">
+                <Signatures id="65" type="coderapp.internal.interface.project.FunctionSignature">
+                  <Inputs id="66" type="coderapp.internal.interface.project.Input">
+                    <Name>wF0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="67" type="coderapp.internal.interface.project.Input">
+                    <Name>wFm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="68" type="coderapp.internal.interface.project.Input">
+                    <Name>t0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="69" type="coderapp.internal.interface.project.Input">
+                    <Name>tL</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="70" type="coderapp.internal.interface.project.Input">
+                    <Name>t0dot</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="71" type="coderapp.internal.interface.project.Input">
+                    <Name>tLdot</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="72" type="coderapp.internal.interface.project.Input">
+                    <Name>P0</Name>
+                    <Type id="35" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="73" type="coderapp.internal.interface.project.Input">
+                    <Name>pm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="74" type="coderapp.internal.interface.project.Input">
+                    <Name>I0</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="75" type="coderapp.internal.interface.project.Input">
+                    <Name>Im</Name>
+                    <Type id="76" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="77" type="coderapp.internal.interface.project.Input">
+                    <Name>Bij</Name>
+                    <Type id="31" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="78" type="coderapp.internal.interface.project.Input">
+                    <Name>Bi0</Name>
+                    <Type id="33" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="79" type="coderapp.internal.interface.project.Input">
+                    <Name>nLinksJoints</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="80" type="coderapp.internal.interface.project.Input">
+                    <Name>nQ</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="81" type="coderapp.internal.interface.project.Input">
+                    <Name>robotBaseLink</Name>
+                    <Type id="82" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <Inputs id="83" type="coderapp.internal.interface.project.Input">
+                    <Name>robotLinks</Name>
+                    <Type id="15" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <Inputs id="84" type="coderapp.internal.interface.project.Input">
+                    <Name>robotConChild</Name>
+                    <Type id="26" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="85" type="coderapp.internal.interface.project.Input">
+                    <Name>robotConChildBase</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="86" type="coderapp.internal.interface.project.Input">
+                    <Name>robotJoints</Name>
+                    <Type id="13" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <NumOutputs>2</NumOutputs>
+                </Signatures>
+                <File type="coderapp.internal.util.mfz.FileSpec">
+                  <Path>src/kinematics_dynamics/ID_C.m</Path>
+                </File>
+                <Name>ID_C</Name>
+              </EntryPoints>
+              <EntryPoints id="87" type="coderapp.internal.interface.project.EntryPointFunction">
+                <Signatures id="88" type="coderapp.internal.interface.project.FunctionSignature">
+                  <Inputs id="89" type="coderapp.internal.interface.project.Input">
+                    <Name>tau0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="90" type="coderapp.internal.interface.project.Input">
+                    <Name>taum</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="91" type="coderapp.internal.interface.project.Input">
+                    <Name>wF0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="92" type="coderapp.internal.interface.project.Input">
+                    <Name>wFm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="93" type="coderapp.internal.interface.project.Input">
+                    <Name>t0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="94" type="coderapp.internal.interface.project.Input">
+                    <Name>tm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="95" type="coderapp.internal.interface.project.Input">
+                    <Name>P0</Name>
+                    <Type id="35" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="96" type="coderapp.internal.interface.project.Input">
+                    <Name>pm</Name>
+                    <Type id="37" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="97" type="coderapp.internal.interface.project.Input">
+                    <Name>I0</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="98" type="coderapp.internal.interface.project.Input">
+                    <Name>Im</Name>
+                    <Type id="76" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="99" type="coderapp.internal.interface.project.Input">
+                    <Name>Bij</Name>
+                    <Type id="31" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="100" type="coderapp.internal.interface.project.Input">
+                    <Name>Bi0</Name>
+                    <Type id="33" type="coderapp.internal.codertype.HomogeneousCellType"/>
+                  </Inputs>
+                  <Inputs id="101" type="coderapp.internal.interface.project.Input">
+                    <Name>u0</Name>
+                    <Type id="39" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="102" type="coderapp.internal.interface.project.Input">
+                    <Name>um</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="103" type="coderapp.internal.interface.project.Input">
+                    <Name>nLinksJoints</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="104" type="coderapp.internal.interface.project.Input">
+                    <Name>nQ</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="105" type="coderapp.internal.interface.project.Input">
+                    <Name>robotBaseLink</Name>
+                    <Type id="82" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <Inputs id="106" type="coderapp.internal.interface.project.Input">
+                    <Name>robotLinks</Name>
+                    <Type id="15" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <Inputs id="107" type="coderapp.internal.interface.project.Input">
+                    <Name>robotConChild</Name>
+                    <Type id="26" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="108" type="coderapp.internal.interface.project.Input">
+                    <Name>robotConChildBase</Name>
+                    <Type id="9" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Inputs>
+                  <Inputs id="109" type="coderapp.internal.interface.project.Input">
+                    <Name>robotJoints</Name>
+                    <Type id="13" type="coderapp.internal.codertype.StructType"/>
+                  </Inputs>
+                  <NumOutputs>2</NumOutputs>
+                </Signatures>
+                <File type="coderapp.internal.util.mfz.FileSpec">
+                  <Path>src/kinematics_dynamics/FD_C.m</Path>
+                </File>
+                <Name>FD_C</Name>
+              </EntryPoints>
+              <SizeConstraints id="110" type="coderapp.internal.interface.project.SizeConstraints">
                 <Value type="coderapp.internal.interface.project.SizeConstraintsValue"/>
               </SizeConstraints>
-              <Types id="17" type="coderapp.internal.codertype.TypeStore">
+              <Types id="111" type="coderapp.internal.codertype.TypeStore">
                 <Types id="7" type="coderapp.internal.codertype.PrimitiveType">
                   <ClassName>double</ClassName>
                   <Size type="coderapp.internal.codertype.Dimension">
@@ -73,13 +424,282 @@
                   <Size type="coderapp.internal.codertype.Dimension"/>
                   <Size type="coderapp.internal.codertype.Dimension"/>
                 </Types>
-                <Types id="18" type="coderapp.internal.codertype.PrimitiveType">
+                <Types id="112" type="coderapp.internal.codertype.PrimitiveType">
                   <ClassName>double</ClassName>
                   <Size type="coderapp.internal.codertype.Dimension">
                     <Length>4</Length>
                   </Size>
                   <Size type="coderapp.internal.codertype.Dimension">
                     <Length>4</Length>
+                  </Size>
+                </Types>
+                <Types id="35" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                </Types>
+                <Types id="113" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="114" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>7</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="39" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="115" type="coderapp.internal.codertype.HomogeneousCellType">
+                  <BaseType id="35" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <ClassName>cell</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="116" type="coderapp.internal.codertype.StructType">
+                  <Fields id="117" type="coderapp.internal.codertype.Property">
+                    <Name>id</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="118" type="coderapp.internal.codertype.Property">
+                    <Name>type</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="119" type="coderapp.internal.codertype.Property">
+                    <Name>q_id</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="120" type="coderapp.internal.codertype.Property">
+                    <Name>parent_link</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="121" type="coderapp.internal.codertype.Property">
+                    <Name>child_link</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="122" type="coderapp.internal.codertype.Property">
+                    <Name>axis</Name>
+                    <Type id="7" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="123" type="coderapp.internal.codertype.Property">
+                    <Name>T</Name>
+                    <Type id="112" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="124" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="82" type="coderapp.internal.codertype.StructType">
+                  <Fields id="125" type="coderapp.internal.codertype.Property">
+                    <Name>mass</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="126" type="coderapp.internal.codertype.Property">
+                    <Name>inertia</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="127" type="coderapp.internal.codertype.HomogeneousCellType">
+                  <BaseType id="35" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <ClassName>cell</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="128" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                    <Sizedness>VARIABLE</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="129" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="130" type="coderapp.internal.codertype.StructType">
+                  <Fields id="131" type="coderapp.internal.codertype.Property">
+                    <Name>id</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="132" type="coderapp.internal.codertype.Property">
+                    <Name>parent_joint</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="133" type="coderapp.internal.codertype.Property">
+                    <Name>T</Name>
+                    <Type id="112" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="134" type="coderapp.internal.codertype.Property">
+                    <Name>mass</Name>
+                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="135" type="coderapp.internal.codertype.Property">
+                    <Name>inertia</Name>
+                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="136" type="coderapp.internal.codertype.HomogeneousCellType">
+                  <BaseType id="5" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <ClassName>cell</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                </Types>
+                <Types id="137" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>24</Length>
+                  </Size>
+                </Types>
+                <Types id="138" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>8</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="139" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="140" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                </Types>
+                <Types id="141" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>4</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>4</Length>
+                  </Size>
+                </Types>
+                <Types id="142" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="143" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                </Types>
+                <Types id="144" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="145" type="coderapp.internal.codertype.StructType">
+                  <Fields id="146" type="coderapp.internal.codertype.Property">
+                    <Name>mass</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="147" type="coderapp.internal.codertype.Property">
+                    <Name>inertia</Name>
+                    <Type id="140" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="13" type="coderapp.internal.codertype.StructType">
+                  <Fields id="148" type="coderapp.internal.codertype.Property">
+                    <Name>id</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="149" type="coderapp.internal.codertype.Property">
+                    <Name>type</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="150" type="coderapp.internal.codertype.Property">
+                    <Name>q_id</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="151" type="coderapp.internal.codertype.Property">
+                    <Name>parent_link</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="152" type="coderapp.internal.codertype.Property">
+                    <Name>child_link</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="153" type="coderapp.internal.codertype.Property">
+                    <Name>axis</Name>
+                    <Type id="142" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="154" type="coderapp.internal.codertype.Property">
+                    <Name>T</Name>
+                    <Type id="141" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <ClassName>struct</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
                   </Size>
                 </Types>
                 <Types id="9" type="coderapp.internal.codertype.PrimitiveType">
@@ -89,34 +709,26 @@
                   </Size>
                   <Size type="coderapp.internal.codertype.Dimension"/>
                 </Types>
-                <Types id="13" type="coderapp.internal.codertype.StructType">
-                  <Fields id="19" type="coderapp.internal.codertype.Property">
+                <Types id="15" type="coderapp.internal.codertype.StructType">
+                  <Fields id="155" type="coderapp.internal.codertype.Property">
                     <Name>id</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
                   </Fields>
-                  <Fields id="20" type="coderapp.internal.codertype.Property">
-                    <Name>type</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <Fields id="156" type="coderapp.internal.codertype.Property">
+                    <Name>parent_joint</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
                   </Fields>
-                  <Fields id="21" type="coderapp.internal.codertype.Property">
-                    <Name>q_id</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="22" type="coderapp.internal.codertype.Property">
-                    <Name>parent_link</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="23" type="coderapp.internal.codertype.Property">
-                    <Name>child_link</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="24" type="coderapp.internal.codertype.Property">
-                    <Name>axis</Name>
-                    <Type id="7" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="25" type="coderapp.internal.codertype.Property">
+                  <Fields id="157" type="coderapp.internal.codertype.Property">
                     <Name>T</Name>
-                    <Type id="18" type="coderapp.internal.codertype.PrimitiveType"/>
+                    <Type id="141" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="158" type="coderapp.internal.codertype.Property">
+                    <Name>mass</Name>
+                    <Type id="139" type="coderapp.internal.codertype.PrimitiveType"/>
+                  </Fields>
+                  <Fields id="159" type="coderapp.internal.codertype.Property">
+                    <Name>inertia</Name>
+                    <Type id="140" type="coderapp.internal.codertype.PrimitiveType"/>
                   </Fields>
                   <ClassName>struct</ClassName>
                   <Size type="coderapp.internal.codertype.Dimension"/>
@@ -124,28 +736,54 @@
                     <Sizedness>UNBOUNDED</Sizedness>
                   </Size>
                 </Types>
-                <Types id="15" type="coderapp.internal.codertype.StructType">
-                  <Fields id="26" type="coderapp.internal.codertype.Property">
-                    <Name>id</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="27" type="coderapp.internal.codertype.Property">
-                    <Name>parent_joint</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="28" type="coderapp.internal.codertype.Property">
-                    <Name>T</Name>
-                    <Type id="18" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="29" type="coderapp.internal.codertype.Property">
-                    <Name>mass</Name>
-                    <Type id="11" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <Fields id="30" type="coderapp.internal.codertype.Property">
-                    <Name>inertia</Name>
-                    <Type id="5" type="coderapp.internal.codertype.PrimitiveType"/>
-                  </Fields>
-                  <ClassName>struct</ClassName>
+                <Types id="21" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>3</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="26" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="31" type="coderapp.internal.codertype.HomogeneousCellType">
+                  <BaseType id="143" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <ClassName>cell</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="33" type="coderapp.internal.codertype.HomogeneousCellType">
+                  <BaseType id="143" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <ClassName>cell</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension"/>
+                </Types>
+                <Types id="37" type="coderapp.internal.codertype.PrimitiveType">
+                  <ClassName>double</ClassName>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Length>6</Length>
+                  </Size>
+                  <Size type="coderapp.internal.codertype.Dimension">
+                    <Sizedness>UNBOUNDED</Sizedness>
+                  </Size>
+                </Types>
+                <Types id="76" type="coderapp.internal.codertype.HomogeneousCellType">
+                  <BaseType id="140" type="coderapp.internal.codertype.PrimitiveType"/>
+                  <ClassName>cell</ClassName>
                   <Size type="coderapp.internal.codertype.Dimension"/>
                   <Size type="coderapp.internal.codertype.Dimension">
                     <Sizedness>UNBOUNDED</Sizedness>
@@ -173,129 +811,227 @@
               </Activity>
               <MainBuildResult id="3" type="coderapp.internal.mlc.mfz.MatlabCoderCodegenResult">
                 <WorkflowTarget>DLL</WorkflowTarget>
-                <LogDirectory>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C</LogDirectory>
+                <LogDirectory>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C</LogDirectory>
                 <MainReport id="4" type="coderapp.internal.build.mfz.CodegenArtifact"/>
-                <OutputFile>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C.so</OutputFile>
+                <OutputFile>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C.so</OutputFile>
                 <Artifacts id="4" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <SubType>CODEGEN_REPORT</SubType>
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/html/report.mldatx</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/html/report.mldatx</Path>
                   </File>
                   <Type>CODEGEN_REPORT</Type>
                 </Artifacts>
                 <Artifacts id="5" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <SubType>LIBRARY</SubType>
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C.so</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C.so</Path>
                   </File>
                   <Type>BINARY</Type>
                 </Artifacts>
                 <Artifacts id="6" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C.c</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/Accelerations_C.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="7" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/Accelerations_C.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="8" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_data.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/DiffKinematics_C.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="9" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_emxAPI.c</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/DiffKinematics_C.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="10" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_emxAPI.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/FD_C.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="11" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_emxutil.c</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/FD_C.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="12" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_emxutil.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/ID_C.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="13" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_initialize.c</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/ID_C.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="14" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_initialize.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/I_I_C.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="15" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_terminate.c</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/I_I_C.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="16" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_terminate.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/Kinematics_C.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="17" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/Kinematics_C_types.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/Kinematics_C.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="18" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/rtwtypes.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_data.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="19" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/usr/local/MATLAB/R2025a/extern/include/tmwtypes.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_data.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="20" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/examples/main.c</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_emxAPI.c</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <Artifacts id="21" type="coderapp.internal.build.mfz.CodegenArtifact">
                   <File type="coderapp.internal.util.mfz.FileSpec">
-                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/Kinematics_C/examples/main.h</Path>
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_emxAPI.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="22" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_emxutil.c</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="23" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_emxutil.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="24" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_initialize.c</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="25" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_initialize.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="26" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_terminate.c</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="27" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_terminate.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="28" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/SPART_C_types.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="29" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/Velocities_C.c</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="30" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/Velocities_C.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="31" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/mldivide.c</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="32" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/mldivide.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="33" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/rtwtypes.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="34" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/usr/local/MATLAB/R2025a/extern/include/tmwtypes.h</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="35" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/examples/main.c</Path>
+                  </File>
+                  <Type>GENERATED_SOURCE</Type>
+                </Artifacts>
+                <Artifacts id="36" type="coderapp.internal.build.mfz.CodegenArtifact">
+                  <File type="coderapp.internal.util.mfz.FileSpec">
+                    <Path>/home/mdambrosio/Desktop/Github/SPART/codegen/dll/SPART_C/examples/main.h</Path>
                   </File>
                   <Type>GENERATED_SOURCE</Type>
                 </Artifacts>
                 <BuildFolder type="coderapp.internal.util.mfz.FileSpec"/>
                 <Success>true</Success>
-                <Timestamp>2026-02-24T10:31:53</Timestamp>
+                <Timestamp>2026-02-24T12:00:51</Timestamp>
               </MainBuildResult>
             </coderapp.internal.mlc.mfz.MatlabCoderProjectState>
           </MF0>
         </part>
         <part role="standaloneConfig">
           <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_config_datamodel/R2021a.001 http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_form_datamodel/R2020a http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b http://schema.mathworks.com/mf0/coderapp_utils_datamodel/R2020a" version="1.1">
-            <coderapp.internal.ext.ConfigStore id="1" type="coderapp.internal.ext.ConfigStore"/>
+            <coderapp.internal.ext.ConfigStore id="1" type="coderapp.internal.ext.ConfigStore">
+              <Values id="2" type="coderapp.internal.ext.ConfigEntry">
+                <Key>outputFile</Key>
+                <Data id="3" type="coderapp.internal.config.data.StringParamData">
+                  <Value>SPART_C</Value>
+                  <Help type="coderapp.internal.util.DocRef"/>
+                </Data>
+              </Values>
+            </coderapp.internal.ext.ConfigStore>
           </MF0>
         </part>
         <part role="mexConfig">
