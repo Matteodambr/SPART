@@ -190,6 +190,127 @@ _preload_libiomp5()
 # Cache of loaded libraries: {so_path: ctypes.CDLL}
 _libs = {}
 
+
+def _find_matlab_include(src_dir):
+    """
+    Return the path to MATLAB's extern/include directory, or None if not found.
+
+    Search order:
+    1. MATLAB_ROOT environment variable
+    2. MATLAB_ROOT value parsed from SPART_C_rtw.mk (generated at Coder time)
+    3. Common installation prefixes (/usr/local/MATLAB/R*, /opt/matlab/R*)
+    """
+    import glob, re
+
+    candidates = []
+
+    # 1. Env var
+    env_root = os.environ.get('MATLAB_ROOT', '')
+    if env_root:
+        candidates.append(os.path.join(env_root, 'extern', 'include'))
+
+    # 2. Parse .mk file
+    mk = os.path.join(src_dir, 'SPART_C_rtw.mk')
+    if os.path.isfile(mk):
+        with open(mk) as fh:
+            for line in fh:
+                m = re.match(r'MATLAB_ROOT\s*=\s*(.+)', line)
+                if m:
+                    candidates.append(os.path.join(m.group(1).strip(), 'extern', 'include'))
+                    break
+
+    # 3. Common prefixes
+    for pattern in ['/usr/local/MATLAB/R*/extern/include',
+                    '/opt/matlab/R*/extern/include',
+                    os.path.expanduser('~/MATLAB/R*/extern/include')]:
+        candidates.extend(sorted(glob.glob(pattern), reverse=True))  # newest first
+
+    # 4. Local fallback — tmwtypes.h manually placed alongside the C sources
+    candidates.append(src_dir)
+
+    for path in candidates:
+        if os.path.isfile(os.path.join(path, 'tmwtypes.h')):
+            return path
+    return None
+
+
+def _build_spart_so(so_path):
+    """
+    Compile SPART_C.so from its bundled C sources using gcc.
+
+    Called automatically when:
+    - The .so file does not exist
+    - The .so is older than any .c source file in the same directory
+    - Loading the existing .so raises an OSError (e.g. wrong architecture)
+
+    Requirements: gcc with OpenMP support (-fopenmp).  No MATLAB needed —
+    all headers (including rtwtypes.h) are shipped alongside the .c files.
+    """
+    import subprocess, shutil
+
+    src_dir = os.path.dirname(os.path.abspath(so_path))
+
+    # Verify gcc is available
+    if not shutil.which('gcc'):
+        raise RuntimeError(
+            "gcc not found on PATH.  Install gcc (e.g. `sudo apt install gcc`) "
+            "to allow automatic rebuild of SPART_C.so."
+        )
+
+    c_sources = [f for f in os.listdir(src_dir) if f.endswith('.c')]
+    if not c_sources:
+        raise RuntimeError(f"No .c source files found in {src_dir}")
+
+    # Locate MATLAB extern/include for tmwtypes.h (included by rtwtypes.h)
+    matlab_inc = _find_matlab_include(src_dir)
+    if matlab_inc and matlab_inc != src_dir:
+        # Cache tmwtypes.h locally so future rebuilds work without MATLAB
+        local_copy = os.path.join(src_dir, 'tmwtypes.h')
+        if not os.path.isfile(local_copy):
+            import shutil as _shutil
+            _shutil.copy2(os.path.join(matlab_inc, 'tmwtypes.h'), local_copy)
+    extra_inc = [f'-I{matlab_inc}'] if matlab_inc and matlab_inc != src_dir else []
+    if not matlab_inc:
+        import warnings
+        warnings.warn(
+            "MATLAB extern/include not found and no local tmwtypes.h present; "
+            "build may fail.  Set MATLAB_ROOT env var, or copy tmwtypes.h from "
+            "MATLAB's extern/include into codegen/dll/SPART_C/.",
+            RuntimeWarning, stacklevel=3
+        )
+
+    cmd = (
+        ['gcc', '-shared', '-fPIC', '-fopenmp', '-O2',
+         '-msse2', '-fwrapv', '-fno-predictive-commoning',
+         f'-I{src_dir}'] + extra_inc
+        + ['-o', so_path]
+        + [os.path.join(src_dir, f) for f in c_sources]
+        + ['-lm']
+    )
+
+    print(f"[PySPART] Building SPART_C.so from source in {src_dir} …")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"SPART_C.so build failed (exit {result.returncode}):\n"
+            f"{result.stderr.strip()}"
+        )
+    print("[PySPART] Build succeeded.")
+
+
+def _so_needs_rebuild(so_path):
+    """Return True if the .so is missing or older than any .c source."""
+    if not os.path.isfile(so_path):
+        return True
+    so_mtime = os.path.getmtime(so_path)
+    src_dir  = os.path.dirname(os.path.abspath(so_path))
+    for fname in os.listdir(src_dir):
+        if fname.endswith('.c'):
+            if os.path.getmtime(os.path.join(src_dir, fname)) > so_mtime:
+                return True
+    return False
+
+
 def _load_so(so_path, init_fn, fn_name, fn_argtypes):
     """
     Load a MATLAB Coder-generated shared library (once) and register its symbols.
@@ -208,7 +329,18 @@ def _load_so(so_path, init_fn, fn_name, fn_argtypes):
     if so_path in _libs:
         return _libs[so_path]
 
-    lib = ctypes.CDLL(so_path)
+    # Rebuild if missing or sources are newer
+    if _so_needs_rebuild(so_path):
+        _build_spart_so(so_path)
+
+    # Load — if it fails (e.g. wrong arch on a fresh checkout), rebuild and retry
+    try:
+        lib = ctypes.CDLL(so_path)
+    except OSError as exc:
+        print(f"[PySPART] Failed to load {so_path} ({exc}); attempting rebuild …")
+        _build_spart_so(so_path)
+        lib = ctypes.CDLL(so_path)
+
     getattr(lib, init_fn)()
 
     # --- emxAPI — present in every MATLAB Coder C library ---

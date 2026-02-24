@@ -94,3 +94,5 @@ print(f'umdot  ({nq},):')   ; print(umdot_out)
 
 # Benchmark
 spart.benchmark(n_runs=5000)
+
+# Test force rebuilding of C functions
