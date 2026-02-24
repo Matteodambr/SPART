@@ -91,3 +91,6 @@ u0dot_out, umdot_out = spart.forward_dynamics(
     tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um)
 print(f'u0dot  (6,):')      ; print(u0dot_out)
 print(f'umdot  ({nq},):')   ; print(umdot_out)
+
+# Benchmark
+spart.benchmark(n_runs=5000)

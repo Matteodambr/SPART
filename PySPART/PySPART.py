@@ -380,13 +380,13 @@ def _pack_bij(Bij_arr, n):
     """
     Pack a (n, n, 6, 6) numpy array into a flat C array of _CCellWrap1.
     MATLAB Coder col-major indexing: Bij{i,j} -> data[j*n + i] (0-indexed).
+    Each 6x6 block stored col-major: f1[col*6+row] = Bij[i,j,row,col].
     """
     c_data = (_CCellWrap1 * (n * n))()
-    for i in range(n):
-        for j in range(n):
-            flat = np.asarray(Bij_arr[i, j], dtype=np.float64).flatten(order='F')
-            for k in range(36):
-                c_data[j * n + i].f1[k] = flat[k]
+    arr = np.asarray(Bij_arr, dtype=np.float64)           # (n, n, 6, 6)
+    # transpose(1,0,3,2) → (j, i, col, row), C-reshape → flat[j*n+i, col*6+row]
+    flat = arr.transpose(1, 0, 3, 2).reshape(n * n, 36)  # always returns a copy
+    ctypes.memmove(c_data, flat.ctypes.data, flat.nbytes)
     return c_data
 
 
@@ -394,12 +394,13 @@ def _pack_bi0(Bi0_arr, n):
     """
     Pack a (n, 6, 6) numpy array into a flat C array of _CCellWrap1.
     Bi0{i} -> data[i] (0-indexed).
+    Each 6x6 block stored col-major: f1[col*6+row] = Bi0[i,row,col].
     """
     c_data = (_CCellWrap1 * n)()
-    for i in range(n):
-        flat = np.asarray(Bi0_arr[i], dtype=np.float64).flatten(order='F')
-        for k in range(36):
-            c_data[i].f1[k] = flat[k]
+    arr = np.asarray(Bi0_arr, dtype=np.float64)   # (n, 6, 6)
+    # transpose(0,2,1) → (i, col, row), C-reshape → flat[i, col*6+row]
+    flat = arr.transpose(0, 2, 1).reshape(n, 36)  # always returns a copy
+    ctypes.memmove(c_data, flat.ctypes.data, flat.nbytes)
     return c_data
 
 
@@ -407,12 +408,13 @@ def _pack_im(Im_arr, n):
     """
     Pack a (n, 3, 3) numpy array into a flat C array of _CCellWrap2.
     Im{i} -> data[i] (0-indexed).
+    Each 3x3 block stored col-major: f1[col*3+row] = Im[i,row,col].
     """
     c_data = (_CCellWrap2 * n)()
-    for i in range(n):
-        flat = np.asarray(Im_arr[i], dtype=np.float64).flatten(order='F')
-        for k in range(9):
-            c_data[i].f1[k] = flat[k]
+    arr = np.asarray(Im_arr, dtype=np.float64)   # (n, 3, 3)
+    # transpose(0,2,1) → (i, col, row), C-reshape → flat[i, col*3+row]
+    flat = arr.transpose(0, 2, 1).reshape(n, 9)  # always returns a copy
+    ctypes.memmove(c_data, flat.ctypes.data, flat.nbytes)
     return c_data
 
 
@@ -442,17 +444,15 @@ def _read_emx_cw1(ptr, n):
 
     if len(shape) == 2 and shape[1] > 1:
         rows, cols = shape
-        out = np.empty((rows, cols, 6, 6), dtype=np.float64)
-        for c in range(cols):
-            for r in range(rows):
-                out[r, c] = flat[r + c * rows].reshape(6, 6, order='F')
-        return out
+        # flat[r + c*rows, col*6+row] = Bij[r,c,row,col]
+        # reshape(rows*cols,6,6) → tmp[r+c*rows, col, row]; transpose → (r+c*rows, row, col)
+        # reshape(cols,rows,6,6) → [c,r,row,col]; transpose(1,0,2,3) → [r,c,row,col]
+        tmp = flat.reshape(rows * cols, 6, 6).transpose(0, 2, 1).reshape(cols, rows, 6, 6)
+        return tmp.transpose(1, 0, 2, 3).copy()
     else:
         n_items = shape[0]
-        out = np.empty((n_items, 6, 6), dtype=np.float64)
-        for i in range(n_items):
-            out[i] = flat[i].reshape(6, 6, order='F')
-        return out
+        # flat[i, col*6+row] = cell[row,col]; reshape(n,6,6)→[i,col,row]; transpose→[i,row,col]
+        return flat.reshape(n_items, 6, 6).transpose(0, 2, 1).copy()
 
 
 def _read_emx_cw2(ptr):
@@ -473,10 +473,8 @@ def _read_emx_cw2(ptr):
     raw = ctypes.string_at(data_addr, n_items * 9 * 8)
     flat = np.frombuffer(raw, dtype=np.float64).reshape(n_items, 9)
 
-    out = np.empty((n_items, 3, 3), dtype=np.float64)
-    for i in range(n_items):
-        out[i] = flat[i].reshape(3, 3, order='F')
-    return out
+    # flat[i, col*3+row] = Im[i,row,col]; reshape(n,3,3)→[i,col,row]; transpose→[i,row,col]
+    return flat.reshape(n_items, 3, 3).transpose(0, 2, 1).copy()
 
 
 # ---------------------------------------------------------------------------
@@ -1168,6 +1166,102 @@ class SPART:
         lib.emxDestroyArray_real_T(emx_umdot)
 
         return u0dot, umdot
+
+    def benchmark(self, n_runs=1000, R0=None, r0=None, qm=None,
+                  u0=None, um=None, u0dot=None, umdot=None,
+                  wF0=None, wFm=None, tau0=None, taum=None):
+        """
+        Time each SPART function over ``n_runs`` iterations and print a summary.
+
+        Default inputs are zeros (identity rotation for R0) unless supplied.
+
+        Parameters
+        ----------
+        n_runs : int
+            Number of repetitions per function (default 1000).
+        R0, r0, qm, u0, um, u0dot, umdot, wF0, wFm, tau0, taum : array-like, optional
+            Override the default zero inputs.
+        """
+        import timeit as _timeit
+
+        nq = self._robot.n_q
+        n  = self._robot.n_links_joints
+
+        # --- Default inputs ---
+        if R0    is None: R0    = np.eye(3)
+        if r0    is None: r0    = np.zeros(3)
+        if qm    is None: qm    = np.zeros(nq)
+        if u0    is None: u0    = np.zeros(6)
+        if um    is None: um    = np.zeros(nq)
+        if u0dot is None: u0dot = np.zeros(6)
+        if umdot is None: umdot = np.zeros(nq)
+        if wF0   is None: wF0   = np.zeros(6)
+        if wFm   is None: wFm   = np.zeros((6, n))
+        if tau0  is None: tau0  = np.zeros(6)
+        if taum  is None: taum  = np.zeros(nq)
+
+        results = {}
+
+        # 1. kinematics
+        def _run_kin():
+            return self.kinematics(R0, r0, qm)
+        t = _timeit.timeit(_run_kin, number=n_runs)
+        results['kinematics'] = t
+        RJ, RL, rJ, rL, e, g = _run_kin()
+
+        # 2. diff_kinematics
+        def _run_dk():
+            return self.diff_kinematics(R0, r0, rL, e, g)
+        t = _timeit.timeit(_run_dk, number=n_runs)
+        results['diff_kinematics'] = t
+        Bij, Bi0, P0, pm = _run_dk()
+
+        # 3. velocities
+        def _run_vel():
+            return self.velocities(Bij, Bi0, P0, pm, u0, um)
+        t = _timeit.timeit(_run_vel, number=n_runs)
+        results['velocities'] = t
+        t0, tL = _run_vel()
+
+        # 4. i_i
+        def _run_ii():
+            return self.i_i(R0, RL)
+        t = _timeit.timeit(_run_ii, number=n_runs)
+        results['i_i'] = t
+        I0, Im = _run_ii()
+
+        # 5. accelerations
+        def _run_acc():
+            return self.accelerations(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot)
+        t = _timeit.timeit(_run_acc, number=n_runs)
+        results['accelerations'] = t
+        t0dot, tLdot = _run_acc()
+
+        # 6. inverse_dynamics
+        def _run_id():
+            return self.inverse_dynamics(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0)
+        t = _timeit.timeit(_run_id, number=n_runs)
+        results['inverse_dynamics'] = t
+
+        # 7. forward_dynamics
+        def _run_fd():
+            return self.forward_dynamics(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um)
+        t = _timeit.timeit(_run_fd, number=n_runs)
+        results['forward_dynamics'] = t
+
+        # --- Print table ---
+        col_w = 20
+        print(f"\nBenchmark — {n_runs} runs each  ({self._robot.name})")
+        print("─" * 52)
+        print(f"{'Function':<{col_w}}  {'Total (s)':>10}  {'Per call (µs)':>14}")
+        print("─" * 52)
+        for name, total in results.items():
+            per_call_us = total / n_runs * 1e6
+            print(f"{name:<{col_w}}  {total:>10.4f}  {per_call_us:>12.1f} µs")
+        print("─" * 52)
+        total_all = sum(results.values())
+        print(f"{'TOTAL (pipeline)':<{col_w}}  {total_all:>10.4f}  {total_all/n_runs*1e6:>12.1f} µs")
+        print()
 
     def __repr__(self):
         return f"SPART(robot={self._robot!r})"

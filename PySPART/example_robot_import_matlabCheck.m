@@ -1,4 +1,5 @@
 robot = urdf2robot('floating_7dof_manipulator.urdf') ;
+% robot = urdf2robot('floating_planar_4dof_manipulator.urdf') ;
 
 R0 = [0.9986, 0, 0.0523; 0, 1.0, 0; -0.0523, 0, 0.9986] ;
 r0 = [3;1;3] ;
