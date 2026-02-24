@@ -2,15 +2,20 @@
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/Matteodambr/SPART) ![GitHub forks](https://img.shields.io/github/forks/NPS-SRL/SPART?style=social) ![GitHub SPART stars](https://img.shields.io/github/stars/NPS-SRL/SPART?style=social) ![GitHub contributors](https://img.shields.io/github/contributors/Matteodambr/SPART) ![Open Issues](https://img.shields.io/github/issues-raw/NPS-SRL/SPART) ![Top Language](https://img.shields.io/github/languages/top/Matteodambr/SPART) ![Code Size](https://img.shields.io/github/languages/code-size/Matteodambr/SPART) ![GitHub issues](https://img.shields.io/github/issues/NPS-SRL/SPART) ![GitHub pull requests](https://img.shields.io/github/issues-pr/NPS-SRL/SPART)
 
-This repository builds on the original SPART library ([link](https://github.com/NPS-SRL/SPART)) that is no longer maintained, adding additional functionalities and modules that are useful when dealing with floating-base systems. Additionally, many SPART functions have been autocoded to C/C++ executables, for highly efficient code, while still maintaining full support for any space robot URDF file.
+This repository builds on the original SPART library ([link](https://github.com/NPS-SRL/SPART)) that is no longer maintained, adding additional functionalities and modules that are useful when dealing with floating-base systems. Many of the original SPART functions have been updated for compatibility with Matlab code generation and their relevant C files have been generated as dynamic libraries, so that they can be linked to other projects, while maintaining full flexibility for any inputted URDF model without the need to rebuild the scripts. Finally, the biggest update has been to create a Python module to automatically call the code-generated SPART C/C++ functions directly in Python, demonstrating the overall higher efficiency in the function calls with respect to the native Matlab execution. This is used for a smoother integration within Python robotics/AI modules and research projects that are currently ongoing.
 
 The main updates to this repo are the following:
-1. Added new space robot URDF models: A 3D system with a 7-DoF manipulator, and a 2D system with a 4-DoF manipulator, both redundant.
-2. Added full ODE functions, for integrating the dynamics of the space robot, both in Simulink and Matlab.
-3. Added initial condition generation function and postprocessing of results function, for simpler handling of dynamics integration.
-4. Homogenized input handling of SPART functions, to make sure all frame rotations are handled correctly.
+1. Development of a Python module (see SPART/PySPART, specifically the example_robot_import.py script) to directly use highly efficient SPART code-generated functions in Python (faster than direct calls in Matlab, considering all Python overhead!).
+2. Added new space robot URDF models: A 3D system with a 7-DoF manipulator, and a 2D system with a 4-DoF manipulator, both redundant, and both easily customizable from the respective URDF files.
+3. Added ODE functions, for integrating the dynamics of the space robot, both in Simulink and Matlab (WIP: Python ODE)
+4. Added initial condition generation function and postprocessing of results function, for simpler handling of dynamics integration.
+5. Homogenized input handling of SPART functions, to make conventions consistent and more user-friendly.
 
-# Original SPART README:
+# Copy of the Original SPART README:
+
+[Read the Docs - README](https://spart.readthedocs.io/en/latest/)
+
+[Github - README](https://github.com/NPS-SRL/SPAR)
 
 SPART is an open-source modeling and control toolkit for mobile-base robotic multibody systems with kinematic tree topologies (*i.e.*, open-loop multi-branched systems).
 SPART is MATLAB-based and ROS-compatible, allowing to prototype in simulation and deploy to hardware controllers for robotic systems.
