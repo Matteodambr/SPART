@@ -5,7 +5,7 @@
  * File: _coder_SPART_C_mex.c
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 /* Include Files */
@@ -31,6 +31,7 @@ void mexFunction(int32_T nlhs, mxArray *plhs[], int32_T nrhs,
   const mxArray *h_prhs[21];
   const mxArray *g_prhs[19];
   const mxArray *f_prhs[12];
+  const mxArray *i_prhs[12];
   const mxArray *c_prhs[8];
   const mxArray *d_prhs[8];
   const mxArray *b_prhs[6];
@@ -42,15 +43,16 @@ void mexFunction(int32_T nlhs, mxArray *plhs[], int32_T nrhs,
   int32_T i4;
   int32_T i5;
   int32_T i6;
-  const char_T *entryPointTemplateNames[7] = {
-      "Kinematics_C", "DiffKinematics_C", "Velocities_C",
-      "I_I_C",        "Accelerations_C",  "ID_C",
-      "FD_C"};
+  int32_T i7;
+  const char_T *entryPointTemplateNames[8] = {
+      "Kinematics_C", "DiffKinematics_C",      "Velocities_C",
+      "I_I_C",        "Accelerations_C",       "ID_C",
+      "FD_C",         "SPART_SPACEROBOT_ODE_C"};
   mexAtExit(&SPART_C_atexit);
   SPART_C_initialize();
   st.tls = emlrtRootTLSGlobal;
   switch (emlrtGetEntryPointIndexR2016a(
-      &st, nrhs, &prhs[0], (const char_T **)&entryPointTemplateNames[0], 7)) {
+      &st, nrhs, &prhs[0], (const char_T **)&entryPointTemplateNames[0], 8)) {
   case 0:
     for (i = 0; i < 6; i++) {
       b_prhs[i] = prhs[i + 1];
@@ -92,6 +94,12 @@ void mexFunction(int32_T nlhs, mxArray *plhs[], int32_T nrhs,
       h_prhs[i6] = prhs[i6 + 1];
     }
     unsafe_FD_C_mexFunction(nlhs, plhs, nrhs - 1, h_prhs);
+    break;
+  case 7:
+    for (i7 = 0; i7 < 12; i7++) {
+      i_prhs[i7] = prhs[i7 + 1];
+    }
+    unsafe_SPART_SPACEROBOT_ODE_C_mexFunction(nlhs, plhs, nrhs - 1, i_prhs);
     break;
   }
   SPART_C_terminate();
@@ -364,6 +372,44 @@ void unsafe_Kinematics_C_mexFunction(int32_T nlhs, mxArray *plhs[6],
     i1 = nlhs;
   }
   emlrtReturnArrays(i1, &plhs[0], &outputs[0]);
+}
+
+/*
+ * Arguments    : int32_T nlhs
+ *                mxArray *plhs[1]
+ *                int32_T nrhs
+ *                const mxArray *prhs[12]
+ * Return Type  : void
+ */
+void unsafe_SPART_SPACEROBOT_ODE_C_mexFunction(int32_T nlhs, mxArray *plhs[1],
+                                               int32_T nrhs,
+                                               const mxArray *prhs[12])
+{
+  emlrtStack st = {
+      NULL, /* site */
+      NULL, /* tls */
+      NULL  /* prev */
+  };
+  const mxArray *b_prhs[12];
+  const mxArray *outputs;
+  int32_T i;
+  st.tls = emlrtRootTLSGlobal;
+  /* Check for proper number of arguments. */
+  if (nrhs != 12) {
+    emlrtErrMsgIdAndTxt(&st, "EMLRT:runTime:WrongNumberOfInputs", 5, 12, 12, 4,
+                        22, "SPART_SPACEROBOT_ODE_C");
+  }
+  if (nlhs > 1) {
+    emlrtErrMsgIdAndTxt(&st, "EMLRT:runTime:TooManyOutputArguments", 3, 4, 22,
+                        "SPART_SPACEROBOT_ODE_C");
+  }
+  /* Call the function. */
+  for (i = 0; i < 12; i++) {
+    b_prhs[i] = prhs[i];
+  }
+  SPART_SPACEROBOT_ODE_C_api(b_prhs, &outputs);
+  /* Copy over outputs to the caller. */
+  emlrtReturnArrays(1, &plhs[0], &outputs);
 }
 
 /*

@@ -457,6 +457,26 @@ def _get_kinematics_lib():
             _pd, _p, _p, _p, _pd, _p, ctypes.c_double, ctypes.c_double,
             _p, _p, _p, _p, _p, _pd, _p]
 
+        # SPART_SPACEROBOT_ODE_C(t, y*, tau*, nLinksJoints, joints*, links*,
+        #      conBranch*, baseInertia[9], nQ, baseLink*, conChild*, conChildBase*,
+        #      dydt* out)
+        lib.SPART_SPACEROBOT_ODE_C.restype  = None
+        lib.SPART_SPACEROBOT_ODE_C.argtypes = [
+            ctypes.c_ulong,   # t
+            _p,               # y
+            _p,               # tau
+            ctypes.c_double,  # nLinksJoints
+            _p,               # robotJoints
+            _p,               # robotLinks
+            _p,               # robotConBranch
+            _pd,              # robotBaseInertia[9]
+            ctypes.c_double,  # nQ
+            _p,               # robotBaseLink
+            _p,               # robotConChild
+            _p,               # robotConChildBase
+            _p,               # dydt (output)
+        ]
+
         lib._spart_extra_registered = True
     return lib
 
@@ -1299,6 +1319,86 @@ class SPART:
 
         return u0dot, umdot
 
+    # ------------------------------------------------------------------
+    # Space-Robot ODE
+    # ------------------------------------------------------------------
+
+    def space_robot_ode(self, t, y, tau):
+        """
+        Compute the ODE time derivative for a free-floating space robot.
+
+        The state vector ``y`` is laid out as::
+
+            y = [R0_flat(9, col-major); r0(3); w0_body(3); r0_dot(3); qm(nQ); qm_dot(nQ)]
+
+        total length = 18 + 2*nQ.
+
+        Parameters
+        ----------
+        t   : float
+            Current simulation time.
+        y   : (18 + 2*nQ,) array
+            State vector as described above.
+        tau : (6 + nQ,) array
+            Generalised forces: ``[tau0(6); taum(nQ)]``.
+
+        Returns
+        -------
+        dydt : (18 + 2*nQ,) array
+            Time derivative of the state vector.
+        """
+        lib = _get_kinematics_lib()
+        n   = self._robot.n_links_joints
+        nq  = self._robot.n_q
+        _pd = ctypes.POINTER(ctypes.c_double)
+
+        y_c   = np.asarray(y,   dtype=np.float64).flatten()
+        tau_c = np.asarray(tau, dtype=np.float64).flatten()
+
+        emx_y,   _yc   = self._make_emx_real_wrap(lib, y_c)
+        emx_tau, _tauc = self._make_emx_real_wrap(lib, tau_c)
+
+        base_I_c   = np.asarray(self._robot.base_link_inertia,
+                                dtype=np.float64, order='F').flatten(order='F')
+        base_I_ptr = base_I_c.ctypes.data_as(_pd)
+
+        emx_cb,  _cb  = self._make_emx_real_wrap(lib, self._c_con_branch)
+        emx_cc,  _cc  = self._make_emx_real_wrap(lib, self._c_con_child)
+        emx_ccb, _ccb = self._make_emx_real_wrap(lib, self._c_con_cb)
+        emx_joints    = self._make_emx_joints(lib)
+        emx_links     = self._make_emx_links(lib)
+
+        _dydt_sz = (ctypes.c_int * 1)(0)
+        emx_dydt = lib.emxCreateND_real_T(ctypes.c_int(1), _dydt_sz)
+
+        lib.SPART_SPACEROBOT_ODE_C(
+            ctypes.c_ulong(int(t)),
+            emx_y,
+            emx_tau,
+            ctypes.c_double(n),
+            emx_joints,
+            emx_links,
+            emx_cb,
+            base_I_ptr,
+            ctypes.c_double(nq),
+            ctypes.cast(ctypes.addressof(self._c_base_link), ctypes.c_void_p),
+            emx_cc,
+            emx_ccb,
+            emx_dydt)
+
+        dydt = _read_emx(emx_dydt).flatten()
+
+        lib.emxDestroyArray_real_T(emx_y)
+        lib.emxDestroyArray_real_T(emx_tau)
+        lib.emxDestroyArray_real_T(emx_cb)
+        lib.emxDestroyArray_real_T(emx_cc)
+        lib.emxDestroyArray_real_T(emx_ccb)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+        lib.emxDestroyArray_struct1_T(emx_links)
+        lib.emxDestroyArray_real_T(emx_dydt)
+
+        return dydt
+
     def benchmark(self, n_runs=1000, R0=None, r0=None, qm=None,
                   u0=None, um=None, u0dot=None, umdot=None,
                   wF0=None, wFm=None, tau0=None, taum=None):
@@ -1380,6 +1480,16 @@ class SPART:
             return self.forward_dynamics(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um)
         t = _timeit.timeit(_run_fd, number=n_runs)
         results['forward_dynamics'] = t
+
+        # 8. space_robot_ode
+        # Build the state vector y = [R0_flat(9); r0(3); u0(6); qm(nq); um(nq)]
+        R0_flat = np.asarray(R0, dtype=np.float64).flatten(order='F')
+        _y_ode  = np.concatenate([R0_flat, r0, u0, qm, um])
+        _tau_ode = np.concatenate([tau0, taum])
+        def _run_ode():
+            return self.space_robot_ode(0.0, _y_ode, _tau_ode)
+        t = _timeit.timeit(_run_ode, number=n_runs)
+        results['space_robot_ode'] = t
 
         # --- Print table ---
         col_w = 20

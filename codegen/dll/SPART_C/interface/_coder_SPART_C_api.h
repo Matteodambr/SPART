@@ -5,7 +5,7 @@
  * File: _coder_SPART_C_api.h
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 #ifndef _CODER_SPART_C_API_H
@@ -204,6 +204,16 @@ void SPART_C_terminate(void);
 void SPART_C_xil_shutdown(void);
 
 void SPART_C_xil_terminate(void);
+
+void SPART_SPACEROBOT_ODE_C(
+    uint64_T t, emxArray_real_T *y, emxArray_real_T *tau, real_T nLinksJoints,
+    emxArray_struct0_T *robotJoints, emxArray_struct1_T *robotLinks,
+    emxArray_real_T *robotConBranch, real_T robotBaseInertia[9], real_T nQ,
+    struct2_T *robotBaseLink, emxArray_real_T *robotConChild,
+    emxArray_real_T *robotConChildBase, emxArray_real_T *dydt);
+
+void SPART_SPACEROBOT_ODE_C_api(const mxArray *const prhs[12],
+                                const mxArray **plhs);
 
 void Velocities_C(emxArray_cell_wrap_1 *Bij, emxArray_cell_wrap_1 *Bi0,
                   real_T P0[36], emxArray_real_T *pm, real_T u0[6],

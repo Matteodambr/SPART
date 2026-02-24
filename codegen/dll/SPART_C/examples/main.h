@@ -5,7 +5,7 @@
  * File: main.h
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 /*************************************************************************/
@@ -59,6 +59,8 @@ extern void main_ID_C(void);
 extern void main_I_I_C(void);
 
 extern void main_Kinematics_C(void);
+
+extern void main_SPART_SPACEROBOT_ODE_C(void);
 
 extern void main_Velocities_C(void);
 

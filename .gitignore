@@ -2,3 +2,4 @@
 *.slxc
 slprj
 PySPART/__pycache__/
+codegen/dll/SPART_C/tmwtypes.h

@@ -5,7 +5,7 @@
  * File: FD_C.h
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 #ifndef FD_C_H
@@ -36,6 +36,9 @@ extern void FD_C(const double tau0[6], const emxArray_real_T *taum,
                  const emxArray_real_T *robotConChildBase,
                  const emxArray_struct0_T *robotJoints, double u0dot[6],
                  emxArray_real_T *umdot);
+
+void binary_expand_op(emxArray_real_T *in1, const emxArray_real_T *in2, int in3,
+                      int in4);
 
 #ifdef __cplusplus
 }

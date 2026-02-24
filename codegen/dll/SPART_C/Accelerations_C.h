@@ -5,7 +5,7 @@
  * File: Accelerations_C.h
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 #ifndef ACCELERATIONS_C_H
@@ -30,6 +30,14 @@ extern void Accelerations_C(const double t0[6], const emxArray_real_T *tL,
                             const emxArray_real_T *umdot, double nLinksJoints,
                             const emxArray_struct0_T *robotJoints,
                             double t0dot[6], emxArray_real_T *tLdot);
+
+void b_Accelerations_C(const double t0[6], const emxArray_real_T *tL,
+                       const double P0[36], const emxArray_real_T *pm,
+                       const emxArray_cell_wrap_1 *Bi0,
+                       const emxArray_cell_wrap_1 *Bij, const double u0[6],
+                       const emxArray_real_T *um, double nLinksJoints,
+                       const emxArray_struct0_T *robotJoints, double t0dot[6],
+                       emxArray_real_T *tLdot);
 
 #ifdef __cplusplus
 }

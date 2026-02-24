@@ -1,6 +1,7 @@
-from PySPART import SPART
-import numpy as np
 import os
+import numpy as np
+from PySPART import SPART
+
 
 # ---------------------------------------------------------------------------
 # Inputs  (identical to example_robot_import_matlabCheck.m)
@@ -92,7 +93,17 @@ u0dot_out, umdot_out = spart.forward_dynamics(
 print(f'u0dot  (6,):')      ; print(u0dot_out)
 print(f'umdot  ({nq},):')   ; print(umdot_out)
 
+# ---------------------------------------------------------------------------
+# Space-Robot ODE
+# ---------------------------------------------------------------------------
+_sep('SPART_SPACEROBOT_ODE_C')
+# Build state vector: y = [R0_flat(9,col-major); r0(3); u0(6); qm(nq); um(nq)]
+R0_flat = R0.flatten(order='F')
+y_ode   = np.concatenate([R0_flat, r0, u0, qm, um])
+tau_ode = np.concatenate([[1, 2, 3, 4, 5, 6], np.ones(nq)])
+dydt    = spart.space_robot_ode(0.0, y_ode, tau_ode)
+print(f'y     ({len(y_ode)},): {y_ode}')
+print(f'dydt  ({len(dydt)},): {dydt}')
+
 # Benchmark
 spart.benchmark(n_runs=5000)
-
-# Test force rebuilding of C functions

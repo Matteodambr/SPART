@@ -21,6 +21,10 @@ robotBaseInertia = robot.base_link.inertia ;
 robotConChild   = robot.con.child ;
 robotConChildBase = robot.con.child_base ;
 
+t = 1 ;
+y = [R0(:); r0; u0; qm; um] ;
+tau = [1;2;3;4;5;6;1*ones(nQ,1)] ;
+
 %% --- Kinematics_C ---
 [RJ, RL, rJ, rL, e, g] = Kinematics_C(R0, r0, qm, nLinksJoints, robotJoints, robotLinks)
 
@@ -42,62 +46,72 @@ robotConChildBase = robot.con.child_base ;
 %% --- FD_C ---
 [u0dot_out, umdot_out] = FD_C(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um, nLinksJoints, nQ, robotBaseLink, robotLinks, robotConChild, robotConChildBase, robotJoints)
 
+%% --- SPART_SPACEROBOT_ODE_C ---
+dydt = SPART_SPACEROBOT_ODE_C(t, y, tau, nLinksJoints, robotJoints, robotLinks, robotConBranch, robotBaseInertia, nQ, robotBaseLink, robotConChild, robotConChildBase)
+
 %% =========================================================
 %  Benchmark — 5000 runs each
 %  =========================================================
 N = 5000;
-fn_names = {'Kinematics_C','DiffKinematics_C','Velocities_C','I_I_C','Accelerations_C','ID_C','FD_C'};
+fn_names = {'Kinematics_C','DiffKinematics_C','Velocities_C','I_I_C','Accelerations_C','ID_C','FD_C','SPART_SPACEROBOT_ODE_C'};
 times = zeros(1, numel(fn_names));
 
 % 1. Kinematics_C
-t = tic;
+t_bench = tic;
 for k = 1:N
     [RJ_b, RL_b, rJ_b, rL_b, e_b, g_b] = Kinematics_C(R0, r0, qm, nLinksJoints, robotJoints, robotLinks);
 end
-times(1) = toc(t);
+times(1) = toc(t_bench);
 
 % 2. DiffKinematics_C
-t = tic;
+t_bench = tic;
 for k = 1:N
     [Bij_b, Bi0_b, P0_b, pm_b] = DiffKinematics_C(R0, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints);
 end
-times(2) = toc(t);
+times(2) = toc(t_bench);
 
 % 3. Velocities_C
-t = tic;
+t_bench = tic;
 for k = 1:N
     [t0_b, tL_b] = Velocities_C(Bij, Bi0, P0, pm, u0, um, nLinksJoints, robotJoints);
 end
-times(3) = toc(t);
+times(3) = toc(t_bench);
 
 % 4. I_I_C
-t = tic;
+t_bench = tic;
 for k = 1:N
     [I0_b, Im_b] = I_I_C(R0, RL, nLinksJoints, robotBaseInertia, robotLinks);
 end
-times(4) = toc(t);
+times(4) = toc(t_bench);
 
 % 5. Accelerations_C
-t = tic;
+t_bench = tic;
 for k = 1:N
     [t0dot_b, tLdot_b] = Accelerations_C(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot, nLinksJoints, robotJoints);
 end
-times(5) = toc(t);
+times(5) = toc(t_bench);
 
 % 6. ID_C
-t = tic;
+t_bench = tic;
 for k = 1:N
     [tau0_b, taum_b] = ID_C(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0, nLinksJoints, nQ, robotBaseLink, robotLinks, robotConChild, robotConChildBase, robotJoints);
 end
-times(6) = toc(t);
+times(6) = toc(t_bench);
 
 % 7. FD_C
 tau0_fd = tau0;  taum_fd = taum;
-t = tic;
+t_bench = tic;
 for k = 1:N
     [u0dot_b, umdot_b] = FD_C(tau0_fd, taum_fd, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um, nLinksJoints, nQ, robotBaseLink, robotLinks, robotConChild, robotConChildBase, robotJoints);
 end
-times(7) = toc(t);
+times(7) = toc(t_bench);
+
+% 8. SPART_SPACEROBOT_ODE_C
+t_bench = tic;
+for k = 1:N
+    dydt_b = SPART_SPACEROBOT_ODE_C(1, y, tau, nLinksJoints, robotJoints, robotLinks, robotConBranch, robotBaseInertia, nQ, robotBaseLink, robotConChild, robotConChildBase);
+end
+times(8) = toc(t_bench);
 
 % --- Print table ---
 col_w = 20;

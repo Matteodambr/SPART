@@ -5,7 +5,7 @@
  * File: _coder_SPART_C_info.c
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 /* Include Files */
@@ -24,47 +24,51 @@ static const mxArray *c_emlrtMexFcnResolvedFunctionsI(void);
 static const mxArray *c_emlrtMexFcnResolvedFunctionsI(void)
 {
   const mxArray *nameCaptureInfo;
-  const char_T *data[11] = {
-      "789ced5abf6fdb4614a603db758136310aa453862c050a0430e3b89259a08b2c99926c4b"
-      "95435b4a1314164d9ec593f843268fb298b55d8bfc0145d18e9d8a8e"
-      "595aa043872e1d8b0c9d3a1505ba35e85ac9d459e20117d1a17bb20efc96d3c323efbb7b"
-      "c7fbf8f84ec242b9b22008c24d21c4f73b61fbf6c85e1db537842848",
-      "ffc2a8bd49d8184bc262e43eec7f366a35c746a08f42c3562d7071a7ee58d0566d741074"
-      "81e002cf317b403ff79c40131c400b289346756859f284ebc218ba86"
-      "bff306d03a8a6f09aee18d47684e1a17f36852e6bb38251e24c87890d761beee6bf2e1fe"
-      "df9ac287fdbbd006968aa0e61de527f99b09f997a9fca1c743aeafa1",
-      "89e72d21dfc754bea8ffc9f6a7a2e15840b474d53a761d0f3a6201781de474c52244867f"
-      "2c2ab5dcc303d17335b1330e8e1e0c1ec6c10f7132606bd6d478dd8a"
-      "397eb21d5fbf72defee37c05872d2bbe7fdf2b2eb1e4c398155f9fd25fdce7ef5d0adf2a"
-      "e157ab41dbe83be5ccbefe490fe5f76a063acbcae371d4a6f04c1b87",
-      "40b159f53feffb38a9eebe3965fcd8bfed9bc03d2ae42b239b95eeea8e7f6c8231dff384"
-      "7cfb54bea8ff52eba5220491af8323e4aab677e2b8c385726c4fbc88"
-      "da60c542b0d28bbf3f7fde62c9f7c78befd658f261f0aebf955c6b7df36c7ddfd8ef7577"
-      "36f59ef6a855d64afce82feffb39ee3c56087b3c8fd073eaab68483c",
-      "2bdd4dfa9eac11b6405c87fd57b34e385a6b56aab757c387c1bbde3e3edcfb50e9b78ba7"
-      "7b07db9bf7734e57b21cc091de3629f75fd7ba006d7eab445b802727"
-      "9329f2acea0249df670a952fea4ffc3d41066cf44663b5bfbf0ed8d607febafbc56d967c"
-      "18bceb25804ab75c9264d354777da99739ad672450e0472f79dfcf71",
-      "e7f106751ea147e9803325985e5ffcbff2d36f12f27d44e58bfa2fb54e3e82a6278e4213"
-      "2e08aff9e89f777e4cf351e1eaf5b5ff81e1bb653f781cd88772adf1"
-      "b4156c4b3647fadaa4dc7f5df3d1b8e75475603a1a44105cf139d522618ff9438f064c73"
-      "926f6eeadb930163784ef58c711efae2d797efb3e4c3e05d277348aa",
-      "0612d0b664496e3fe89682dd0ccc6ea53a4922ae4ebe2e1fee7f89ca177aca47e573619c"
-      "d577fab709f94a54bea83fb12e9e078a5d1df367c67aa8fe764f64c9"
-      "8731af7a789bc2b74af8370a8d8aef18b96cd5ded8ea678a05fd7e4717523d24c12a6fbc"
-      "45d8241ff6e7b4410607dcf01c63a090b3ca1b93d63d1e52f9a2fec4",
-      "fa48040c1fccb1dadf3f31d6cb1bbf7cf90e4b3e8c79d5cbb8f9a3510f368a0d19ed06d9"
-      "babee33b9e1e402fcf8f5ef2be9fd33a6688b48e998c2fad638648eb"
-      "9897ebbf49b9ffba7e9f4fcb07cb85d9d62d937e9f17a97c517ff2eff302d37ae5ef8cf3"
-      "cd97cb7b2b2cf93078d7c39ab1516ed4fdba049fb661ab0ffbd586b1",
-      "ced1ffea79dbbf697e1922cd2f93f1a5f9658834bfbc5cff4dcafdf39a5fca697e19effd"
-      "24b3cd2f2b9fb1cd2f977f78728f251f06ef7a68c3bad9ca7aa50787"
-      "dea39abcae28b6d196383a0f9fd7fddb4d38eef41c297addacebcee939523c3e0cde7597"
-      "f773a479d5dd66c271a7f5d21069bdf4d57c69bd34445a2f8dd7ff7f",
-      "04aae8dd",
+  const char_T *data[12] = {
+      "789ced5ccb72e3441455a80c0c14906c800ddf10e5811351c5c6b12d5b793a51e2cc8402"
+      "db913a966c3d1c3d122b6bf67cc154b1a258516ca89a15dfc19a151b"
+      "fe013b6dc5966a3a96a61d39eedcb348bbeb4a7d5a57e9a3abdbeae616a4fd058ee33ee7"
+      "30b42e2e3f1bd69787e5075c1471fbc2b0fc22560ff1825b8c9c17da",
+      "7f1e968a6d79a8e7e18ad534d1fd99aa6dea56d3f24e822ee21ce4dac63552ef2c97ba81"
+      "4e7413c9e3958341cd14c74cf7958169f0bba021a523fb26e768eea8"
+      "87c678e5de1f0dc2f52e4ef0471c717fc48f0bf9baefc917b6ffe904bed0beab5bc86c7a"
+      "bae2d60be3fc0d4afe0f89fcd8e27a8eaf7823be3f28f90e897c51fb",
+      "f7a51f78cd36116faa4df3c2b15ddde68bc8ed7876972feb9ee65ff072357f7cc2bb8ec2"
+      "7746ce5183fe3f63ff073feeb01573a2bf9612f63f5e8e8e7f897ffc"
+      "fa461f1459f1fdf8664fc8922fc4acf87a84f692feff7d49e05b8ed99b07415bebd952ee"
+      "487d7ded15f6aa9a77b3298efa519dc033a91f1ca19e55fbf33e8e69",
+      "75f7e309fd0fed25df404ebd58d81fd6b3d25dd5f62f0c34e27b4bc97744e48bda53ddaf"
+      "a6e7e99eafa2bae7342df7d2760637cab65cfede6bfd3b8691955efc"
+      "f7d3db56967cfffcfdfb4a967c2158d7dffd7c6b6deb66ed483bbaeeee6ca9d7caab96a4"
+      "54d8d15fd6c773d2eb7819ab8fae035baefca637209e95eed23e27ab",
+      "b13a173b2eb44fe73e85de5a31416fa7c3178275bd3d3fddfb56eeb5cb577b27a5add5bc"
+      "dd154c1b31a4b70dc2f94f352f40babee55859d42f2fc743e459e505"
+      "689f6732912f6aa77e9f883b6cf84483fcc074f842b0ae974897bb5245100da3b9eb0bd7"
+      "b9ab5a4e404576f492f5f19cf43a3e225e07b6c81d74230793f38b8f",
+      "159ffe42c9f71d912f6a4f759f7c4f375c7ee81a7c43588d47fffdfa2f8847b9e9eb6bef"
+      "1bcd77243f380fac53b17a76db0a4a82c590be3608e73fd57834e93c"
+      "550d19b6a27b3a9af23cd562ac3ee2c7160519c638dfdce4b7c71d06f354a093c332a94e"
+      "e63de1201090b22d0a627bbd5b097673fae636e8641c4975f27df9c2",
+      "f65f10f9b045aa4b77c238abf7f4df28f92a44bea89d5a17ef1c955d1e13f4f071f968f5"
+      "90f49dd272ccbe513cdbf76d2dbf79606d6cf772e5a2bada5139d0c3"
+      "38b28a1b9762f5385f68cf2bfd080e39781ea3af90b38a1b69f31ec744bea89d5a1f630e"
+      "0b27e6402fa7c317625ef53269fca8d5828df299e8ed069b3575c7b7",
+      "5d35d0dd023b7ac9fa78863c2606e431e9f8208f890179cc74ed3708e73fd5f7f349f1a0"
+      "549c6dde92f6fdbc4ce48bdae9dfcf8b90af9c225f08d6f5b0aa6d48"
+      "6735bf26e8b76dbdd5d37b0767da1a43dfd5b3367e21bec480f8928e0fe24b0c882fd3b5"
+      "df209c3faff1a508f165b2e79308f1e534f942b0ae87965e335a9b6e",
+      "65fdd47d5515d764d9d2da0243f3e1f33a7ebb94fd8679a4e871b3ce3b83ee26e30bc1ba"
+      "eeb23e8f34afbadba0ec37e44b31205ffa301fe82a06e44bd3b5df20"
+      "9cff58eff759ddb73b31a8f7ff164ac787db8727f5c362a95e989e4e66bd6f9344e48bda"
+      "53e964df27fcbb1d95f9be214b7f66ab97e79f485f65c9178275bdcc",
+      "e52a6ba2b3236fadbe569ac2e17aefa8725b60280e9df7714c9b0780fdf2a2c7c17e79e9"
+      "f8204ec580fdf2d2b5ffdc7597e4afe55809fb91c07e240ff181fe62"
+      "c07e24e9da7feefa0bebefa3c7c1fafb747ca0bb18b0fe3e5dfbf3aebb0dcafec37a7e0c"
+      "58cfff301fe82b06ace74fd7fe73d757f85e1603be977d980ff41503",
+      "be974dd7fe73d75758978501ebb2decd07ebb230605d56b2f6ff078bf0f0d5",
       ""};
   nameCaptureInfo = NULL;
-  emlrtNameCaptureMxArrayR2016a(&data[0], 19144U, &nameCaptureInfo);
+  emlrtNameCaptureMxArrayR2016a(&data[0], 28800U, &nameCaptureInfo);
   return nameCaptureInfo;
 }
 
@@ -103,7 +107,7 @@ mxArray *emlrtMexFcnProperties(void)
       101U, 114U, 116U, 105U, 101U, 115U, 0U,   0U,   0U,   0U,   72U,  97U,
       110U, 100U, 108U, 101U, 0U,   0U,   0U,   0U,   0U,   0U,   0U,   0U};
   xEntryPoints =
-      emlrtCreateStructMatrix(1, 7, 7, (const char_T **)&epFieldName[0]);
+      emlrtCreateStructMatrix(1, 8, 7, (const char_T **)&epFieldName[0]);
   xInputs = emlrtCreateLogicalMatrix(1, 6);
   emlrtSetField(xEntryPoints, 0, "QualifiedName",
                 emlrtMxCreateString("Kinematics_C"));
@@ -116,7 +120,7 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/Kinematics_C.m"));
   emlrtSetField(xEntryPoints, 0, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.43856481486));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 0, "Visible", emlrtMxCreateLogicalScalar(true));
   xInputs = emlrtCreateLogicalMatrix(1, 8);
   emlrtSetField(xEntryPoints, 1, "QualifiedName",
@@ -130,7 +134,7 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/DiffKinematics_C.m"));
   emlrtSetField(xEntryPoints, 1, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.46721064812));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 1, "Visible", emlrtMxCreateLogicalScalar(true));
   xInputs = emlrtCreateLogicalMatrix(1, 8);
   emlrtSetField(xEntryPoints, 2, "QualifiedName",
@@ -144,7 +148,7 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/Velocities_C.m"));
   emlrtSetField(xEntryPoints, 2, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.467025463));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 2, "Visible", emlrtMxCreateLogicalScalar(true));
   xInputs = emlrtCreateLogicalMatrix(1, 5);
   emlrtSetField(xEntryPoints, 3, "QualifiedName", emlrtMxCreateString("I_I_C"));
@@ -157,7 +161,7 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/I_I_C.m"));
   emlrtSetField(xEntryPoints, 3, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.467650463));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 3, "Visible", emlrtMxCreateLogicalScalar(true));
   xInputs = emlrtCreateLogicalMatrix(1, 12);
   emlrtSetField(xEntryPoints, 4, "QualifiedName",
@@ -171,7 +175,7 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/Accelerations_C.m"));
   emlrtSetField(xEntryPoints, 4, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.46760416671));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 4, "Visible", emlrtMxCreateLogicalScalar(true));
   xInputs = emlrtCreateLogicalMatrix(1, 19);
   emlrtSetField(xEntryPoints, 5, "QualifiedName", emlrtMxCreateString("ID_C"));
@@ -184,7 +188,7 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/ID_C.m"));
   emlrtSetField(xEntryPoints, 5, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.46791666665));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 5, "Visible", emlrtMxCreateLogicalScalar(true));
   xInputs = emlrtCreateLogicalMatrix(1, 21);
   emlrtSetField(xEntryPoints, 6, "QualifiedName", emlrtMxCreateString("FD_C"));
@@ -197,8 +201,22 @@ mxArray *emlrtMexFcnProperties(void)
                 emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
                                     "kinematics_dynamics/FD_C.m"));
   emlrtSetField(xEntryPoints, 6, "TimeStamp",
-                emlrtMxCreateDoubleScalar(740037.49589120375));
+                emlrtMxCreateDoubleScalar(740037.59870370373));
   emlrtSetField(xEntryPoints, 6, "Visible", emlrtMxCreateLogicalScalar(true));
+  xInputs = emlrtCreateLogicalMatrix(1, 12);
+  emlrtSetField(xEntryPoints, 7, "QualifiedName",
+                emlrtMxCreateString("SPART_SPACEROBOT_ODE_C"));
+  emlrtSetField(xEntryPoints, 7, "NumberOfInputs",
+                emlrtMxCreateDoubleScalar(12.0));
+  emlrtSetField(xEntryPoints, 7, "NumberOfOutputs",
+                emlrtMxCreateDoubleScalar(1.0));
+  emlrtSetField(xEntryPoints, 7, "ConstantInputs", xInputs);
+  emlrtSetField(xEntryPoints, 7, "ResolvedFilePath",
+                emlrtMxCreateString("/home/mdambrosio/Desktop/Github/SPART/src/"
+                                    "ODE/SPART_SPACEROBOT_ODE_C.m"));
+  emlrtSetField(xEntryPoints, 7, "TimeStamp",
+                emlrtMxCreateDoubleScalar(740037.6433217593));
+  emlrtSetField(xEntryPoints, 7, "Visible", emlrtMxCreateLogicalScalar(true));
   xResult =
       emlrtCreateStructMatrix(1, 1, 7, (const char_T **)&propFieldName[0]);
   emlrtSetField(xResult, 0, "Version",
@@ -206,7 +224,7 @@ mxArray *emlrtMexFcnProperties(void)
   emlrtSetField(xResult, 0, "ResolvedFunctions",
                 (mxArray *)c_emlrtMexFcnResolvedFunctionsI());
   emlrtSetField(xResult, 0, "Checksum",
-                emlrtMxCreateString("YDZE9u3fNe2dKiM47JCFaG"));
+                emlrtMxCreateString("ineXafOflVBWCgxO3L8BmD"));
   emlrtSetField(xResult, 0, "EntryPoints", xEntryPoints);
   emlrtSetField(xResult, 0, "AuxData",
                 emlrtMxCreateRowVectorUINT8((const uint8_T *)&v, 216U));

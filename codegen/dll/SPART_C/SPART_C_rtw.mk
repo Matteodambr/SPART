@@ -2,7 +2,7 @@
 ## Makefile generated for component 'SPART_C'. 
 ## 
 ## Makefile     : SPART_C_rtw.mk
-## Generated on : Tue Feb 24 12:00:50 2026
+## Generated on : Tue Feb 24 15:36:51 2026
 ## Final product: ./SPART_C.so
 ## Product type : dynamic-library
 ## 
@@ -167,7 +167,7 @@ DEFINES = $(DEFINES_CUSTOM) $(DEFINES_STANDARD)
 ## SOURCE FILES
 ###########################################################################
 
-SRCS = $(START_DIR)/codegen/dll/SPART_C/SPART_C_data.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_initialize.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_terminate.c $(START_DIR)/codegen/dll/SPART_C/Kinematics_C.c $(START_DIR)/codegen/dll/SPART_C/DiffKinematics_C.c $(START_DIR)/codegen/dll/SPART_C/Velocities_C.c $(START_DIR)/codegen/dll/SPART_C/I_I_C.c $(START_DIR)/codegen/dll/SPART_C/Accelerations_C.c $(START_DIR)/codegen/dll/SPART_C/ID_C.c $(START_DIR)/codegen/dll/SPART_C/FD_C.c $(START_DIR)/codegen/dll/SPART_C/mldivide.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_emxutil.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_emxAPI.c
+SRCS = $(START_DIR)/codegen/dll/SPART_C/SPART_C_data.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_initialize.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_terminate.c $(START_DIR)/codegen/dll/SPART_C/Kinematics_C.c $(START_DIR)/codegen/dll/SPART_C/DiffKinematics_C.c $(START_DIR)/codegen/dll/SPART_C/Velocities_C.c $(START_DIR)/codegen/dll/SPART_C/I_I_C.c $(START_DIR)/codegen/dll/SPART_C/Accelerations_C.c $(START_DIR)/codegen/dll/SPART_C/ID_C.c $(START_DIR)/codegen/dll/SPART_C/FD_C.c $(START_DIR)/codegen/dll/SPART_C/SPART_SPACEROBOT_ODE_C.c $(START_DIR)/codegen/dll/SPART_C/mldivide.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_emxutil.c $(START_DIR)/codegen/dll/SPART_C/SPART_C_emxAPI.c
 
 ALL_SRCS = $(SRCS)
 
@@ -175,7 +175,7 @@ ALL_SRCS = $(SRCS)
 ## OBJECTS
 ###########################################################################
 
-OBJS = SPART_C_data.o SPART_C_initialize.o SPART_C_terminate.o Kinematics_C.o DiffKinematics_C.o Velocities_C.o I_I_C.o Accelerations_C.o ID_C.o FD_C.o mldivide.o SPART_C_emxutil.o SPART_C_emxAPI.o
+OBJS = SPART_C_data.o SPART_C_initialize.o SPART_C_terminate.o Kinematics_C.o DiffKinematics_C.o Velocities_C.o I_I_C.o Accelerations_C.o ID_C.o FD_C.o SPART_SPACEROBOT_ODE_C.o mldivide.o SPART_C_emxutil.o SPART_C_emxAPI.o
 
 ALL_OBJS = $(OBJS)
 
@@ -435,6 +435,10 @@ ID_C.o : $(START_DIR)/codegen/dll/SPART_C/ID_C.c
 
 
 FD_C.o : $(START_DIR)/codegen/dll/SPART_C/FD_C.c
+	$(CC) $(CFLAGS) -o "$@" "$<"
+
+
+SPART_SPACEROBOT_ODE_C.o : $(START_DIR)/codegen/dll/SPART_C/SPART_SPACEROBOT_ODE_C.c
 	$(CC) $(CFLAGS) -o "$@" "$<"
 
 

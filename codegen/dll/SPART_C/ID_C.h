@@ -5,7 +5,7 @@
  * File: ID_C.h
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 #ifndef ID_C_H
@@ -35,6 +35,18 @@ extern void ID_C(const double wF0[6], const emxArray_real_T *wFm,
                  const emxArray_real_T *robotConChildBase,
                  const emxArray_struct0_T *robotJoints, double tau0[6],
                  emxArray_real_T *taum);
+
+void b_ID_C(const double wF0[6], const emxArray_real_T *wFm, const double t0[6],
+            const emxArray_real_T *tL, const double t0dot[6],
+            const emxArray_real_T *tLdot, const double P0[36],
+            const emxArray_real_T *pm, const double I0[9],
+            const emxArray_cell_wrap_2 *Im, const emxArray_cell_wrap_1 *Bij,
+            const emxArray_cell_wrap_1 *Bi0, double nLinksJoints, double nQ,
+            double robotBaseLink_mass, const emxArray_struct1_T *robotLinks,
+            const emxArray_real_T *robotConChild,
+            const emxArray_real_T *robotConChildBase,
+            const emxArray_struct0_T *robotJoints, double tau0[6],
+            emxArray_real_T *taum);
 
 #ifdef __cplusplus
 }

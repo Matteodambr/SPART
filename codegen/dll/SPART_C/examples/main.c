@@ -5,7 +5,7 @@
  * File: main.c
  *
  * MATLAB Coder version            : 25.1
- * C/C++ source code generated on  : 24-Feb-2026 12:00:28
+ * C/C++ source code generated on  : 24-Feb-2026 15:36:29
  */
 
 /*************************************************************************/
@@ -45,6 +45,7 @@
 #include "SPART_C_initialize.h"
 #include "SPART_C_terminate.h"
 #include "SPART_C_types.h"
+#include "SPART_SPACEROBOT_ODE_C.h"
 #include "Velocities_C.h"
 
 /* Function Declarations */
@@ -83,6 +84,8 @@ static void argInit_struct0_T(struct0_T *result);
 static void argInit_struct1_T(struct1_T *result);
 
 static void argInit_struct2_T(struct2_T *result);
+
+static unsigned long argInit_uint64_T(void);
 
 static emxArray_cell_wrap_1 *c_argInit_UnboundedxUnbounded_c(void);
 
@@ -407,6 +410,15 @@ Change this value to the value that the application requires. */
 
 /*
  * Arguments    : void
+ * Return Type  : unsigned long
+ */
+static unsigned long argInit_uint64_T(void)
+{
+  return 0UL;
+}
+
+/*
+ * Arguments    : void
  * Return Type  : emxArray_cell_wrap_1 *
  */
 static emxArray_cell_wrap_1 *c_argInit_UnboundedxUnbounded_c(void)
@@ -476,6 +488,7 @@ You can call entry-point functions multiple times. */
   main_Accelerations_C();
   main_ID_C();
   main_FD_C();
+  main_SPART_SPACEROBOT_ODE_C();
   /* Terminate the application.
 You do not need to do this more than one time. */
   SPART_C_terminate();
@@ -814,6 +827,59 @@ void main_Kinematics_C(void)
   emxDestroyArray_real_T(rL);
   emxDestroyArray_real_T(e);
   emxDestroyArray_real_T(g);
+}
+
+/*
+ * Arguments    : void
+ * Return Type  : void
+ */
+void main_SPART_SPACEROBOT_ODE_C(void)
+{
+  emxArray_real_T *dydt;
+  emxArray_real_T *robotConBranch;
+  emxArray_real_T *robotConChild;
+  emxArray_real_T *robotConChildBase;
+  emxArray_real_T *tau;
+  emxArray_real_T *y;
+  emxArray_struct0_T *robotJoints;
+  emxArray_struct1_T *robotLinks;
+  struct2_T r;
+  double dv[9];
+  double nLinksJoints_tmp;
+  /* Initialize function 'SPART_SPACEROBOT_ODE_C' input arguments. */
+  /* Initialize function input argument 'y'. */
+  y = argInit_Unboundedx1_real_T();
+  /* Initialize function input argument 'tau'. */
+  tau = argInit_Unboundedx1_real_T();
+  nLinksJoints_tmp = argInit_real_T();
+  /* Initialize function input argument 'robotJoints'. */
+  robotJoints = argInit_1xUnbounded_struct0_T();
+  /* Initialize function input argument 'robotLinks'. */
+  robotLinks = argInit_1xUnbounded_struct1_T();
+  /* Initialize function input argument 'robotConBranch'. */
+  robotConBranch = c_argInit_UnboundedxUnbounded_r();
+  /* Initialize function input argument 'robotBaseInertia'. */
+  /* Initialize function input argument 'robotBaseLink'. */
+  /* Initialize function input argument 'robotConChild'. */
+  robotConChild = c_argInit_UnboundedxUnbounded_r();
+  /* Initialize function input argument 'robotConChildBase'. */
+  robotConChildBase = argInit_Unboundedx1_real_T();
+  /* Call the entry-point 'SPART_SPACEROBOT_ODE_C'. */
+  emxInitArray_real_T(&dydt, 1);
+  argInit_3x3_real_T(dv);
+  argInit_struct2_T(&r);
+  SPART_SPACEROBOT_ODE_C(argInit_uint64_T(), y, tau, nLinksJoints_tmp,
+                         robotJoints, robotLinks, robotConBranch, dv,
+                         nLinksJoints_tmp, &r, robotConChild, robotConChildBase,
+                         dydt);
+  emxDestroyArray_real_T(robotConChildBase);
+  emxDestroyArray_real_T(robotConChild);
+  emxDestroyArray_real_T(robotConBranch);
+  emxDestroyArray_struct1_T(robotLinks);
+  emxDestroyArray_struct0_T(robotJoints);
+  emxDestroyArray_real_T(tau);
+  emxDestroyArray_real_T(y);
+  emxDestroyArray_real_T(dydt);
 }
 
 /*
