@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spartpy"
-version = "1.0.0"
+version = "1.0.1"
 description = "Python port of SPART: dynamics and control toolkit for free-flyer space robots"
 readme = "SPARTpy/README.md"
 license = { text = "BSD-3-Clause" }
