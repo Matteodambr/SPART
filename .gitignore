@@ -3,3 +3,11 @@
 slprj
 PySPART/__pycache__/
 codegen/dll/SPART_C/tmwtypes.h
+
+# SPARTpy PyPI packaging artefacts
+SPARTpy/_c_src/SPART_C/
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc

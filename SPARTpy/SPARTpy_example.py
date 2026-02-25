@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from PySPART import SPART
+from SPARTpy import SPART
 
 
 # ---------------------------------------------------------------------------

@@ -1,10 +1,10 @@
-import matlab.engine
 import numpy as np
 import ctypes
 import os
 
 # ---------------------------------------------------------------------------
-# MATLAB engine (lazy-started on first use)
+# MATLAB engine (lazy-started on first use, import deferred so the module
+# can be loaded without a MATLAB installation)
 # ---------------------------------------------------------------------------
 _engine = None
 
@@ -12,12 +12,19 @@ def _get_engine():
     """Return the shared MATLAB engine, starting it if necessary."""
     global _engine
     if _engine is None:
-        _engine = matlab.engine.start_matlab()
+        try:
+            import matlab.engine as _matlab_engine  # noqa: PLC0415
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "matlab.engine is not installed.  The MATLAB engine is only "
+                "needed for _load_robot_matlab() (cross-validation).  "
+                "Use load_robot() instead, which is pure Python."
+            ) from exc
+        _engine = _matlab_engine.start_matlab()
         # Add the SPART source tree to the MATLAB path
         spart_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         _engine.addpath(_engine.genpath(spart_root), nargout=0)
     return _engine
-
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -145,9 +152,27 @@ class _EmxCellWrap2(ctypes.Structure):   # emxArray_cell_wrap_2
         ('canFreeData',   ctypes.c_uint8),
     ]
 
-_CODEGEN_ROOT = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    'codegen', 'dll'
+# ---------------------------------------------------------------------------
+# Locate the SPART_C shared library root.
+#
+# Two possible layouts are supported:
+#
+#  1. Pip-installed wheel / editable install
+#        SPARTpy/_c_src/SPART_C/SPART_C.so
+#        (C sources copied there by setup.py's build_py hook)
+#
+#  2. Running directly from the SPART source tree (development)
+#        codegen/dll/SPART_C/SPART_C.so
+# ---------------------------------------------------------------------------
+_PKG_DIR      = os.path.dirname(os.path.abspath(__file__))
+_PKG_C_SRC    = os.path.join(_PKG_DIR, '_c_src')                       # layout 1 root
+_DEV_CODEGEN  = os.path.join(os.path.dirname(_PKG_DIR), 'codegen', 'dll')  # layout 2 root
+
+# Prefer the in-package copy when it exists (pip-installed case).
+_CODEGEN_ROOT = (
+    _PKG_C_SRC
+    if os.path.isdir(os.path.join(_PKG_C_SRC, 'SPART_C'))
+    else _DEV_CODEGEN
 )
 
 # ---------------------------------------------------------------------------
@@ -185,7 +210,13 @@ def _preload_libiomp5():
         "Intel OpenMP (e.g. `conda install -c intel openmp`)."
     )
 
-_preload_libiomp5()
+# Try to preload libiomp5.so; failure is non-fatal for pure-Python usage
+# (URDF loading, etc.) but will cause C-library calls to fail later.
+_LIBIOMP5_ERROR = None
+try:
+    _preload_libiomp5()
+except OSError as _e:
+    _LIBIOMP5_ERROR = str(_e)
 
 # Cache of loaded libraries: {so_path: ctypes.CDLL}
 _libs = {}
@@ -692,12 +723,356 @@ def _read_emx_cw2(ptr):
 
 
 # ---------------------------------------------------------------------------
+# Native Python URDF parsing  (no MATLAB required)
+# Mirrors urdf2robot.m + ConnectivityMap.m exactly — all ids are 1-based.
+# ---------------------------------------------------------------------------
+
+import xml.etree.ElementTree as _ET
+
+def _str_to_vec(s):
+    """Space-separated string → numpy float64 array."""
+    if not s:
+        return np.zeros(3)
+    return np.array([float(x) for x in s.split()])
+
+
+def _rpy_to_dcm(rpy):
+    """
+    URDF RPY (fixed-axis X-Y-Z) → DCM.
+    Matches MATLAB  ``Angles321_DCM(rpy')'’’  used in urdf2robot.m:
+        DCM = Rz(yaw) @ Ry(pitch) @ Rx(roll)
+    """
+    r, p, y = rpy
+    Rx = np.array([[1,        0,         0        ],
+                   [0,  np.cos(r), -np.sin(r)],
+                   [0,  np.sin(r),  np.cos(r)]])
+    Ry = np.array([[ np.cos(p), 0, np.sin(p)],
+                   [0,          1,        0  ],
+                   [-np.sin(p), 0, np.cos(p)]])
+    Rz = np.array([[np.cos(y), -np.sin(y), 0],
+                   [np.sin(y),  np.cos(y), 0],
+                   [0,          0,         1]])
+    return Rz @ Ry @ Rx
+
+
+def _get_transform_from_origin(origin_elem):
+    """Extract a 4×4 homogeneous transform from an <origin> XML element."""
+    T = np.eye(4)
+    if origin_elem is not None:
+        if 'xyz' in origin_elem.attrib:
+            T[:3, 3] = _str_to_vec(origin_elem.attrib['xyz'])
+        if 'rpy' in origin_elem.attrib:
+            T[:3, :3] = _rpy_to_dcm(_str_to_vec(origin_elem.attrib['rpy']))
+    return T
+
+
+def _connectivity_map(robot):
+    """
+    Compute branch / child / child_base connectivity maps.
+
+    Direct Python port of ConnectivityMap.m.  All link and joint indices
+    inside the structures are 1-based; link id 0 denotes the base link.
+
+    Parameters
+    ----------
+    robot : RobotModel
+
+    Returns
+    -------
+    branch     : ndarray (n, n)
+    child      : ndarray (n, n)
+    child_base : ndarray (n,)
+    """
+    n = robot.n_links_joints
+
+    branch = np.zeros((n, n))
+    for i in range(n, 0, -1):             # i = n … 1 (1-based link id)
+        last = i
+        branch[i - 1, i - 1] = 1.0
+        while True:
+            pj          = int(robot.links[last - 1].parent_joint)  # 1-based
+            parent_link = int(robot.joints[pj - 1].parent_link)    # 0 or 1-based
+            if parent_link == 0:
+                break
+            branch[i - 1, parent_link - 1] = 1.0
+            last = parent_link
+
+    child      = np.zeros((n, n))
+    child_base = np.zeros(n)
+    for i in range(n, 0, -1):
+        pj          = int(robot.links[i - 1].parent_joint)
+        parent_link = int(robot.joints[pj - 1].parent_link)
+        if parent_link != 0:
+            child[i - 1, parent_link - 1] = 1.0
+        else:
+            child_base[i - 1] = 1.0
+
+    return branch, child, child_base
+
+
+def _parse_urdf(filename, verbose_flag=False):
+    """
+    Load a SPART RobotModel from a URDF file — pure Python, no MATLAB.
+
+    Produces numerically identical results to MATLAB ``urdf2robot.m`` /
+    ``ConnectivityMap.m``.  All joint/link ids and q_ids are 1-based,
+    matching what the MATLAB Coder-generated C library expects.
+
+    Parameters
+    ----------
+    filename     : str
+    verbose_flag : bool, optional
+
+    Returns
+    -------
+    robot      : RobotModel
+    robot_keys : dict
+        ``{'link_id': {name: id}, 'joint_id': {name: id}, 'q_id': {name: q_id}}``
+    """
+    tree = _ET.parse(filename)
+    root = tree.getroot()
+
+    if root.tag != 'robot':
+        raise ValueError("Root element is not <robot>.")
+
+    robot_name  = root.attrib.get('name', 'unnamed')
+    links_urdf  = [c for c in root if c.tag == 'link']
+    joints_urdf = [c for c in root if c.tag == 'joint']  # noqa: F841
+
+    n_links_total = len(links_urdf)
+    if verbose_flag:
+        print(f"Number of links: {n_links_total} (including the base link)")
+
+    links_map  = {}
+    joints_map = {}
+
+    # --- Parse links ---
+    for link_xml in links_urdf:
+        name        = link_xml.attrib['name']
+        link_T      = np.eye(4)
+        mass_val    = 0.0
+        inertia_mat = np.zeros((3, 3))
+
+        inertial = link_xml.find('inertial')
+        if inertial is None:
+            raise ValueError(
+                f"Link '{name}' is missing an <inertial> element.  "
+                f"SPART requires mass and inertia data for every link.  "
+                f"Add an <inertial> block to this link in the URDF."
+            )
+
+        link_T = _get_transform_from_origin(inertial.find('origin'))
+
+        mass_elem = inertial.find('mass')
+        if mass_elem is not None and 'value' in mass_elem.attrib:
+            mass_val = float(mass_elem.attrib['value'])
+
+        inertia_elem = inertial.find('inertia')
+        if inertia_elem is not None:
+            ixx = float(inertia_elem.attrib.get('ixx', 0))
+            iyy = float(inertia_elem.attrib.get('iyy', 0))
+            izz = float(inertia_elem.attrib.get('izz', 0))
+            ixy = float(inertia_elem.attrib.get('ixy', 0))
+            iyz = float(inertia_elem.attrib.get('iyz', 0))
+            ixz = float(inertia_elem.attrib.get('ixz', 0))
+            inertia_mat = np.array([[ixx, ixy, ixz],
+                                    [ixy, iyy, iyz],
+                                    [ixz, iyz, izz]])
+
+        links_map[name] = {
+            'name':         name,
+            'T':            link_T,
+            'mass':         mass_val,
+            'inertia':      inertia_mat,
+            'parent_joint': [],
+            'child_joint':  [],
+        }
+
+    # --- Parse joints ---
+    for joint_xml in [c for c in root if c.tag == 'joint']:
+        name        = joint_xml.attrib['name']
+        j_type_name = joint_xml.attrib.get('type', 'fixed')
+
+        if j_type_name in ('revolute', 'continuous'):
+            j_type = 1
+        elif j_type_name == 'prismatic':
+            j_type = 2
+        elif j_type_name == 'fixed':
+            j_type = 0
+        else:
+            raise ValueError(f"Joint type '{j_type_name}' not supported.")
+
+        joint_T   = _get_transform_from_origin(joint_xml.find('origin'))
+
+        axis_elem = joint_xml.find('axis')
+        axis_vec  = np.zeros(3)
+        if axis_elem is not None and 'xyz' in axis_elem.attrib:
+            axis_vec = _str_to_vec(axis_elem.attrib['xyz'])
+        elif j_type != 0:
+            raise ValueError(f"'{name}' is a moving joint and requires a joint axis.")
+
+        parent_link_name = ''
+        parent_elem = joint_xml.find('parent')
+        if parent_elem is not None:
+            parent_link_name = parent_elem.attrib.get('link', '')
+            if parent_link_name in links_map:
+                links_map[parent_link_name]['child_joint'].append(name)
+
+        child_link_name = ''
+        child_elem = joint_xml.find('child')
+        if child_elem is not None:
+            child_link_name = child_elem.attrib.get('link', '')
+            if child_link_name in links_map:
+                links_map[child_link_name]['parent_joint'].append(name)
+
+        # Correct joint transform so it is relative to the parent link's
+        # inertial frame:  joint.T = inv(parent_link.T) @ joint.T
+        if parent_link_name in links_map:
+            parent_T = links_map[parent_link_name]['T']
+            joint_T  = np.linalg.solve(parent_T, joint_T)
+
+        joints_map[name] = {
+            'name':        name,
+            'type':        j_type,
+            'parent_link': parent_link_name,
+            'child_link':  child_link_name,
+            'axis':        axis_vec,
+            'T':           joint_T,
+        }
+
+    # --- Find base link ---
+    base_link = None
+    for lname, ldata in links_map.items():
+        if not ldata['parent_joint']:
+            base_link = lname
+            if verbose_flag:
+                print(f"Base link: {base_link}")
+            break
+    if base_link is None:
+        raise ValueError("Robot has no single base link!")
+
+    robot_keys = {'link_id': {}, 'joint_id': {}, 'q_id': {}}
+    robot_keys['link_id'][base_link] = 0
+
+    n_links_joints = n_links_total - 1
+    clink          = links_map[base_link]
+
+    robot_joints = []
+    robot_links  = []
+    counters     = {'nl': 0, 'nj': 0, 'nq': 0}
+
+    def _recurse(c_joint_name):
+        cj = joints_map[c_joint_name]
+
+        j_id = counters['nj'] + 1   # 1-based
+        counters['nj'] += 1
+
+        j_type = cj['type']
+        if j_type > 0:
+            q_id = counters['nq'] + 1   # 1-based
+            robot_keys['q_id'][cj['name']] = q_id
+            counters['nq'] += 1
+        else:
+            q_id = -1
+
+        l_id = counters['nl'] + 1   # 1-based
+        counters['nl'] += 1
+
+        robot_joints.append(JointData(
+            id          = j_id,
+            type        = j_type,
+            q_id        = q_id,
+            parent_link = robot_keys['link_id'][cj['parent_link']],
+            child_link  = l_id,
+            axis        = cj['axis'],
+            T           = cj['T'],
+        ))
+
+        child_l = links_map[cj['child_link']]
+        robot_links.append(LinkData(
+            id           = l_id,
+            parent_joint = j_id,    # 1-based
+            T            = child_l['T'],
+            mass         = child_l['mass'],
+            inertia      = child_l['inertia'],
+        ))
+
+        robot_keys['joint_id'][cj['name']]     = j_id
+        robot_keys['link_id'][child_l['name']] = l_id
+
+        for next_j in child_l['child_joint']:
+            _recurse(next_j)
+
+    for root_j in clink['child_joint']:
+        _recurse(root_j)
+
+    n_q = counters['nq']
+    if verbose_flag:
+        print(f"Number of joint variables: {n_q}")
+
+    # Build connectivity maps
+    robot_partial = RobotModel(
+        name              = robot_name,
+        n_q               = n_q,
+        n_links_joints    = n_links_joints,
+        joints            = robot_joints,
+        links             = robot_links,
+        con_branch        = np.zeros((n_links_joints, n_links_joints)),
+        con_child         = np.zeros((n_links_joints, n_links_joints)),
+        con_child_base    = np.zeros(n_links_joints),
+        base_link_mass    = clink['mass'],
+        base_link_inertia = clink['inertia'],
+    )
+
+    branch, child, child_base = _connectivity_map(robot_partial)
+
+    robot = RobotModel(
+        name              = robot_name,
+        n_q               = n_q,
+        n_links_joints    = n_links_joints,
+        joints            = robot_joints,
+        links             = robot_links,
+        con_branch        = branch,
+        con_child         = child,
+        con_child_base    = child_base,
+        base_link_mass    = clink['mass'],
+        base_link_inertia = clink['inertia'],
+    )
+
+    return robot, robot_keys
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 def load_robot(urdf_path):
     """
+    Load a SPART robot model from a URDF file.
+
+    Uses the native Python URDF parser (_parse_urdf) — no MATLAB engine
+    required.  The returned RobotModel is numerically identical to what
+    MATLAB’s urdf2robot.m / ConnectivityMap.m would produce.
+
+    Parameters
+    ----------
+    urdf_path : str
+        Absolute or relative path to the URDF file.
+
+    Returns
+    -------
+    RobotModel
+    """
+    robot, _ = _parse_urdf(os.path.abspath(urdf_path))
+    return robot
+
+
+def _load_robot_matlab(urdf_path):
+    """
     Load a SPART robot model from a URDF file via the MATLAB engine.
+
+    This is the legacy path kept only for cross-validation against the native
+    Python loader.  Requires matlab.engine and a MATLAB installation.
 
     Parameters
     ----------
@@ -707,29 +1082,18 @@ def load_robot(urdf_path):
     Returns
     -------
     RobotModel
-        A Python RobotModel containing lists of JointData and LinkData,
-        matching the struct0_T / struct1_T layout expected by SPART_C.so.
     """
     eng = _get_engine()
 
-    # Call urdf2robot_py — returns plain numeric matrices (no struct arrays)
-    # jointsMatrix:  [24 x n]
-    # linksMatrix:   [28 x n]
-    # conBranch:     [n  x n]
-    # conChild:      [n  x n]
-    # conChildBase:  [n  x 1]
-    # baseMass:      scalar
-    # baseInertia:   [9  x 1] col-major
     (n_links_joints, n_q_ml, robot_name,
      ml_joints, ml_links,
      ml_con_branch, ml_con_child, ml_con_child_base,
      ml_base_mass, ml_base_inertia) = eng.urdf2robot_py(urdf_path, nargout=10)
     n = int(n_links_joints)
 
-    joints_arr = np.array(ml_joints)  # (24, n)
-    links_arr  = np.array(ml_links)   # (28, n)
+    joints_arr = np.array(ml_joints)   # (24, n)
+    links_arr  = np.array(ml_links)    # (28, n)
 
-    # --- Parse joints ---
     joints = []
     for i in range(n):
         col = joints_arr[:, i]
@@ -743,7 +1107,6 @@ def load_robot(urdf_path):
             T           = col[8:24].reshape(4, 4, order='F'),
         ))
 
-    # --- Parse links ---
     links = []
     for i in range(n):
         col = links_arr[:, i]
@@ -755,12 +1118,9 @@ def load_robot(urdf_path):
             inertia      = col[19:28].reshape(3, 3, order='F'),
         ))
 
-    name = str(robot_name)
-    n_q  = int(n_q_ml)
-
     return RobotModel(
-        name               = name,
-        n_q                = n_q,
+        name               = str(robot_name),
+        n_q                = int(n_q_ml),
         n_links_joints     = n,
         joints             = joints,
         links              = links,

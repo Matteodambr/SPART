@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spartpy"
+version = "1.0.0"
+description = "Python port of SPART: dynamics and control toolkit for free-flyer space robots"
+readme = "SPARTpy/README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+]
+keywords = ["robotics", "space robots", "dynamics", "kinematics", "free-flyer"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.urls]
+Homepage = "https://github.com/Matteodambr/SPART"
+Documentation = "https://spart.readthedocs.io"
+Issues = "https://github.com/Matteodambr/SPART/issues"
+
+[tool.setuptools]
+packages = ["SPARTpy"]
+package-dir = {"" = "."}
+
+[tool.setuptools.package-data]
+SPARTpy = [
+    "_c_src/SPART_C/*.c",
+    "_c_src/SPART_C/*.h",
+    "_c_src/SPART_C/*.so",
+    "_c_src/SPART_C/*.def",
+    "_c_src/SPART_C/rtwtypes.h",
+    "_c_src/SPART_C/tmwtypes.h",
+]
