@@ -1,7 +1,10 @@
 robot = urdf2robot('floating_7dof_manipulator.urdf') ;
 % robot = urdf2robot('floating_planar_4dof_manipulator.urdf') ;
 
-R0 = [0.9986, 0, 0.0523; 0, 1.0, 0; -0.0523, 0, 0.9986] ;
+% R0_body2I: active rotation, body CCS → inertial CCS  (V_I = R0_body2I * V_B)
+% R0_I2body: active rotation, inertial CCS → body CCS   (V_B = R0_I2body * V_I)
+% Relationship: R0_I2body = R0_body2I'
+R0_body2I = [0.9986, 0, 0.0523; 0, 1.0, 0; -0.0523, 0, 0.9986] ;
 r0 = [3;1;3] ;
 qm = deg2rad([30,20,30,20,30,20,30]') ;
 u0 = [0.1; 0.2; 0.3; 0.4; 0.5; 0.6] ;
@@ -22,20 +25,21 @@ robotConChild   = robot.con.child ;
 robotConChildBase = robot.con.child_base ;
 
 t = 1 ;
-y = [R0(:); r0; u0; qm; um] ;
+% ODE state stores R0_I2body (active I→B), not R0_body2I
+y = [R0_body2I'(:); r0; u0; qm; um] ;
 tau = [1;2;3;4;5;6;1*ones(nQ,1)] ;
 
 %% --- Kinematics_C ---
-[RJ, RL, rJ, rL, e, g] = Kinematics_C(R0, r0, qm, nLinksJoints, robotJoints, robotLinks)
+[RJ, RL, rJ, rL, e, g] = Kinematics_C(R0_body2I, r0, qm, nLinksJoints, robotJoints, robotLinks)
 
 %% --- DiffKinematics_C ---
-[Bij, Bi0, P0, pm] = DiffKinematics_C(R0, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints)
+[Bij, Bi0, P0, pm] = DiffKinematics_C(R0_body2I, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints)
 
 %% --- Velocities_C ---
 [t0, tL] = Velocities_C(Bij, Bi0, P0, pm, u0, um, nLinksJoints, robotJoints)
 
 %% --- I_I_C ---
-[I0, Im] = I_I_C(R0, RL, nLinksJoints, robotBaseInertia, robotLinks)
+[I0, Im] = I_I_C(R0_body2I, RL, nLinksJoints, robotBaseInertia, robotLinks)
 
 %% --- Accelerations_C ---
 [t0dot, tLdot] = Accelerations_C(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot, nLinksJoints, robotJoints)
@@ -59,14 +63,14 @@ times = zeros(1, numel(fn_names));
 % 1. Kinematics_C
 t_bench = tic;
 for k = 1:N
-    [RJ_b, RL_b, rJ_b, rL_b, e_b, g_b] = Kinematics_C(R0, r0, qm, nLinksJoints, robotJoints, robotLinks);
+    [RJ_b, RL_b, rJ_b, rL_b, e_b, g_b] = Kinematics_C(R0_body2I, r0, qm, nLinksJoints, robotJoints, robotLinks);
 end
 times(1) = toc(t_bench);
 
 % 2. DiffKinematics_C
 t_bench = tic;
 for k = 1:N
-    [Bij_b, Bi0_b, P0_b, pm_b] = DiffKinematics_C(R0, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints);
+    [Bij_b, Bi0_b, P0_b, pm_b] = DiffKinematics_C(R0_body2I, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints);
 end
 times(2) = toc(t_bench);
 
@@ -80,7 +84,7 @@ times(3) = toc(t_bench);
 % 4. I_I_C
 t_bench = tic;
 for k = 1:N
-    [I0_b, Im_b] = I_I_C(R0, RL, nLinksJoints, robotBaseInertia, robotLinks);
+    [I0_b, Im_b] = I_I_C(R0_body2I, RL, nLinksJoints, robotBaseInertia, robotLinks);
 end
 times(4) = toc(t_bench);
 

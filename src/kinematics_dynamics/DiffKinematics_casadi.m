@@ -1,7 +1,12 @@
-function [Bij, Bi0, P0, pm] = DiffKinematics_casadi(R0, r0, rL, e, g, robot)
+function [Bij, Bi0, P0, pm] = DiffKinematics_casadi(R0_body2I, r0, rL, e, g, robot)
+% Computes the differential kinematics of the multibody system (CasADi-compatible).
+%
+% :parameters:
+%   * R0_body2I -- Active rotation from the base-link body CCS to the inertial CCS [3x3].
+%                  V_I = R0_body2I * V_B  (maps body-frame vectors to the inertial frame).
 
     % Determine if inputs are symbolic (casadi) or numeric
-    is_symbolic = isa(R0, 'casadi.SX') || isa(R0, 'casadi.MX') || isa(r0, 'casadi.SX') || isa(r0, 'casadi.MX') || ...
+    is_symbolic = isa(R0_body2I, 'casadi.SX') || isa(R0_body2I, 'casadi.MX') || isa(r0, 'casadi.SX') || isa(r0, 'casadi.MX') || ...
                   isa(rL, 'casadi.SX') || isa(rL, 'casadi.MX') || isa(e, 'casadi.SX') || isa(e, 'casadi.MX') || ...
                   isa(g, 'casadi.SX') || isa(g, 'casadi.MX');
 
@@ -47,7 +52,9 @@ function [Bij, Bi0, P0, pm] = DiffKinematics_casadi(R0, r0, rL, e, g, robot)
     pm = zeros6n(6, n);
 
     % Base-link twist-propagation matrix
-    P0 = [R0, zeros3n(3, 3); zeros3n(3, 3), eye3()];
+    % P0 maps [omega_body; r0_dot_inertial] to the inertial-frame twist.
+    % The top-left block R0_body2I rotates the body-frame angular velocity to the inertial frame.
+    P0 = [R0_body2I, zeros3n(3, 3); zeros3n(3, 3), eye3()];
 
     for i = 1:n
         if robot.joints(i).type == 1  % Revolute

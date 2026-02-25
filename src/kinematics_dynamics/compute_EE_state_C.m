@@ -1,4 +1,17 @@
 function [p_ee, R_ee_I2body] = compute_EE_state_C(R0_I2body, r0, qm, nLinksJoints, robotJoints, robotLinks)
+% Computes the end-effector position and orientation.
+%
+% :parameters:
+%   * R0_I2body -- Active rotation from the inertial CCS to the base-link body CCS [3x3].
+%                  V_B = R0_I2body * V_I  (maps inertial-frame vectors to the body frame).
+%                  NOTE: This is the INERTIAL->BODY active rotation, the transpose of R0_body2I
+%                  that the core SPART Kinematics/DiffKinematics functions expect.  It is
+%                  transposed internally before being forwarded to Kinematics_C.
+%
+% :return:
+%   * p_ee       -- End-effector CoM position in the inertial frame [3x1].
+%   * R_ee_I2body -- Active rotation from the inertial CCS to the end-effector body CCS [3x3].
+%                    V_ee = R_ee_I2body * V_I.
 
 [~, RL, ~, rL, ~, ~] = Kinematics_C(R0_I2body', r0, qm, nLinksJoints, robotJoints, robotLinks) ;
 

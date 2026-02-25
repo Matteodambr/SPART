@@ -6,12 +6,20 @@ from SPARTpy import SPART
 # ---------------------------------------------------------------------------
 # Inputs  (identical to example_robot_import_matlabCheck.m)
 # ---------------------------------------------------------------------------
-urdf = os.path.join('URDF_models', 'floating_7dof_manipulator.urdf')
+# Resolve the bundled URDF regardless of the current working directory
+urdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'urdf', 'floating_7dof_manipulator.urdf')
 spart = SPART(urdf)
 
-R0    = np.array([[0.9986,  0.0,  0.0523],
-                  [0.0,     1.0,  0.0   ],
-                  [-0.0523, 0.0,  0.9986]])
+# R0_body2I is the active rotation from the base-link body CCS to the inertial CCS:
+#   V_I = R0_body2I @ V_B  (maps body-frame vectors to the inertial frame)
+# All core SPART functions (kinematics, diff_kinematics, i_i, ...) expect R0_body2I.
+#
+# For ODE integration, the state vector stores R0_I2body = R0_body2I.T:
+#   V_B = R0_I2body @ V_I  (maps inertial-frame vectors to the body frame)
+# Use R0_body2I.T when calling space_robot_ode_input.
+R0_body2I = np.array([[0.9986,  0.0,  0.0523],
+                      [0.0,     1.0,  0.0   ],
+                      [-0.0523, 0.0,  0.9986]])
 r0    = np.array([3., 1., 3.])
 qm    = np.deg2rad([30., 20., 30., 20., 30., 20., 30.])
 u0    = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
@@ -34,7 +42,7 @@ def _sep(title):
 # Kinematics
 # ---------------------------------------------------------------------------
 _sep('Kinematics_C')
-RJ, RL, rJ, rL, e, g = spart.kinematics(R0, r0, qm)
+RJ, RL, rJ, rL, e, g = spart.kinematics(R0_body2I, r0, qm)
 print(f'RJ  (3 x {3*n}):') ; print(RJ)
 print(f'RL  (3 x {3*n}):') ; print(RL)
 print(f'rJ  (3 x {n}):')   ; print(rJ)
@@ -46,7 +54,7 @@ print(f'g   (3 x {n}):')   ; print(g)
 # Differential Kinematics
 # ---------------------------------------------------------------------------
 _sep('DiffKinematics_C')
-Bij, Bi0, P0, pm = spart.diff_kinematics(R0, r0, rL, e, g)
+Bij, Bi0, P0, pm = spart.diff_kinematics(R0_body2I, r0, rL, e, g)
 print(f'Bij ({n} x {n} x 6 x 6) — Bij[0,0]:') ; print(Bij[0, 0])
 print(f'Bi0 ({n} x 6 x 6)       — Bi0[0]  :') ; print(Bi0[0])
 print(f'P0  (6 x 6):')                          ; print(P0)
@@ -64,7 +72,7 @@ print(f'tL  (6 x {n}):') ; print(tL)
 # Inertia in Inertial Frame
 # ---------------------------------------------------------------------------
 _sep('I_I_C')
-I0, Im = spart.i_i(R0, RL)
+I0, Im = spart.i_i(R0_body2I, RL)
 print(f'I0  (3 x 3):')            ; print(I0)
 print(f'Im  ({n} x 3 x 3) — Im[0]:') ; print(Im[0])
 
@@ -97,11 +105,12 @@ print(f'umdot  ({nq},):')   ; print(umdot_out)
 # Space-Robot ODE
 # ---------------------------------------------------------------------------
 _sep('SPART_SPACEROBOT_ODE_C')
-# Build state vector: y = [R0_flat(9,col-major); r0(3); u0(6); qm(nq); um(nq)]
+# Build state vector: y = [R0_I2body_flat(9,col-major); r0(3); u0(6); qm(nq); um(nq)]
+# where R0_I2body = R0_body2I.T  (inertial->body active rotation, stored in ODE state)
 tau0 = np.array([1,2,3,4,5,6]).reshape((-1, 1))
 taum = np.ones((nq, 1))
 t = 0.0
-dydt    = spart.space_robot_ode(*spart.space_robot_ode_input(t, R0, r0, u0, qm, um, tau0, taum)) # NOTE: The * operator automatically unpacks the outputs of the space_robot_ode_input function into separate variables. If a single tuple were called, an error would be given.
+dydt    = spart.space_robot_ode(*spart.space_robot_ode_input(t, R0_body2I.T, r0, u0, qm, um, tau0, taum)) # NOTE: The * operator automatically unpacks the outputs of the space_robot_ode_input function into separate variables. If a single tuple were called, an error would be given.
 print(f'dydt  ({len(dydt)},): {dydt}')
 
 # Benchmark
@@ -120,8 +129,9 @@ um_traj = np.zeros(nq)         # no initial joint velocity
 tau0_traj = np.array([[10],[0],[0],[0],[0],[0]])          # free-flying base
 taum_traj = np.array([2, 1, 0.5, 0., 0., 0., 0.])     # 0.01 Nm on joints 1-3
 
+# space_robot_ode_input expects R0_I2body = R0_body2I.T
 _, y0_traj, tau_ode = spart.space_robot_ode_input(
-    0.0, R0, r0, u0_traj, qm, um_traj, tau0_traj, taum_traj)
+    0.0, R0_body2I.T, r0, u0_traj, qm, um_traj, tau0_traj, taum_traj)
 
 T_end   = 20.0
 max_dt  = 0.05   # 20 Hz output resolution

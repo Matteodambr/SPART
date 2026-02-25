@@ -21,7 +21,9 @@ for k = 1:length(robot_models)
     robot = urdf2robot(robot_models{k}) ;
 
     % Example variables
-    R0 = eye(3, 3) ;
+    % R0_body2I: active rotation from the base-link body CCS to the inertial CCS
+    %   V_I = R0_body2I * V_B
+    R0_body2I = eye(3, 3) ;
     r0 = rand(3, 1) ;
     qm = rand(robot.n_q, 1) ;
     q0_dot = rand(6, 1) ;
@@ -32,8 +34,8 @@ for k = 1:length(robot_models)
     wFm = rand(6, robot.n_q) ;
 
     % Kinematics
-    [RJ, RL, rJ, rL, e, g] = Kinematics(R0, r0, qm, robot) ;
-    [RJ_mex, RL_mex, rJ_mex, rL_mex, e_mex, g_mex] = Kinematics_mex(R0, r0, qm, robot) ;
+    [RJ, RL, rJ, rL, e, g] = Kinematics(R0_body2I, r0, qm, robot) ;
+    [RJ_mex, RL_mex, rJ_mex, rL_mex, e_mex, g_mex] = Kinematics_mex(R0_body2I, r0, qm, robot) ;
     
     % Check Kinematics outputs
     if ~isapprox(RJ, RJ_mex, tol) || ~isapprox(RL, RL_mex, tol) || ~isapprox(rJ, rJ_mex, tol) || ...
@@ -45,8 +47,8 @@ for k = 1:length(robot_models)
     end
 
     % Diff kinematics
-    [Bij, Bi0, P0, pm] = DiffKinematics(R0, r0, rL, e, g, robot) ;
-    [Bij_mex, Bi0_mex, P0_mex, pm_mex] = DiffKinematics_mex(R0, r0, rL, e, g, robot) ;
+    [Bij, Bi0, P0, pm] = DiffKinematics(R0_body2I, r0, rL, e, g, robot) ;
+    [Bij_mex, Bi0_mex, P0_mex, pm_mex] = DiffKinematics_mex(R0_body2I, r0, rL, e, g, robot) ;
     
     % Check DiffKinematics outputs
     if ~isapprox(Bij, Bij_mex, tol) || ~isapprox(Bi0, Bi0_mex, tol) || ...
@@ -75,8 +77,8 @@ for k = 1:length(robot_models)
     % ... (remaining function checks follow the same pattern)
     
     % Inertias
-    [I0, Im] = I_I(R0, RL, robot);
-    [I0_mex, Im_mex] = I_I_mex(R0, RL, robot);
+    [I0, Im] = I_I(R0_body2I, RL, robot);
+    [I0_mex, Im_mex] = I_I_mex(R0_body2I, RL, robot);
     
     if ~isapprox(I0, I0_mex, tol) || ~isapprox(Im, Im_mex, tol)
         disp('  ❌ I_I and I_I_mex outputs differ');

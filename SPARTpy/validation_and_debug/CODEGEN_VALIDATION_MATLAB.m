@@ -35,7 +35,8 @@ nq = robot.n_q;
 %% -----------------------------------------------------------------------
 rng(42);   % reproducible
 
-R0  = Angles321_DCM(-pi + 2*pi*rand(3,1));
+% R0_body2I: active rotation, body CCS → inertial CCS  (V_I = R0_body2I * V_B)
+R0_body2I  = Angles321_DCM(-pi + 2*pi*rand(3,1));
 r0  = -1 + 2*rand(3,1);
 qm  = -pi/2 + pi*rand(nq, 1);
 u0  = [-pi/2 + pi*rand(3,1); -1 + 2*rand(3,1)];
@@ -64,11 +65,11 @@ conChildBase= robot.con.child_base;
 fprintf('=== Kinematics ===\n');
 
 % base: RJ/RL are [3x3xn] (3-D); casadi/C: [3x3n] (2-D flat)
-[RJ_ref, RL_ref, rJ_ref, rL_ref, e_ref, g_ref] = Kinematics(R0, r0, qm, robot);
+[RJ_ref, RL_ref, rJ_ref, rL_ref, e_ref, g_ref] = Kinematics(R0_body2I, r0, qm, robot);
 
-[RJ_cas, RL_cas, rJ_cas, rL_cas, e_cas, g_cas] = Kinematics_casadi(R0, r0, qm, robot);
+[RJ_cas, RL_cas, rJ_cas, rL_cas, e_cas, g_cas] = Kinematics_casadi(R0_body2I, r0, qm, robot);
 
-[RJ_c, RL_c, rJ_c, rL_c, e_c, g_c] = Kinematics_C(R0, r0, qm, nLJ, joints, links);
+[RJ_c, RL_c, rJ_c, rL_c, e_c, g_c] = Kinematics_C(R0_body2I, r0, qm, nLJ, joints, links);
 
 % Convert base [3x3xn] → [3x3n] for comparison
 RJ_ref_flat = reshape(RJ_ref, 3, 3*n);
@@ -95,11 +96,11 @@ chk('    g ', g_ref,  g_c,  TOL);
 fprintf('=== DiffKinematics ===\n');
 
 % base: Bij is [6x6xnxn] (4-D), Bi0 is [6x6xn] (3-D); casadi/C: {nxn} and {nx1} cells
-[Bij_ref, Bi0_ref, P0_ref, pm_ref] = DiffKinematics(R0, r0, rL_ref, e_ref, g_ref, robot);
+[Bij_ref, Bi0_ref, P0_ref, pm_ref] = DiffKinematics(R0_body2I, r0, rL_ref, e_ref, g_ref, robot);
 
-[Bij_cas, Bi0_cas, P0_cas, pm_cas] = DiffKinematics_casadi(R0, r0, rL_cas, e_cas, g_cas, robot);
+[Bij_cas, Bi0_cas, P0_cas, pm_cas] = DiffKinematics_casadi(R0_body2I, r0, rL_cas, e_cas, g_cas, robot);
 
-[Bij_c, Bi0_c, P0_c, pm_c] = DiffKinematics_C(R0, r0, rL_c, e_c, g_c, nLJ, conBranch, joints);
+[Bij_c, Bi0_c, P0_c, pm_c] = DiffKinematics_C(R0_body2I, r0, rL_c, e_c, g_c, nLJ, conBranch, joints);
 
 fprintf('  casadi vs ref:\n');
 chk_cell_vs_4d('    Bij', Bij_cas, Bij_ref, n, TOL);
@@ -136,11 +137,11 @@ chk('    tL', tL_ref, tL_c, TOL);
 fprintf('=== I_I ===\n');
 
 % base: Im is [3x3xn] (3-D); casadi/C: {1xn} cell
-[I0_ref, Im_ref] = I_I(R0, RL_ref, robot);
+[I0_ref, Im_ref] = I_I(R0_body2I, RL_ref, robot);
 
-[I0_cas, Im_cas] = I_I_casadi(R0, RL_cas, robot);
+[I0_cas, Im_cas] = I_I_casadi(R0_body2I, RL_cas, robot);
 
-[I0_c, Im_c] = I_I_C(R0, RL_c, nLJ, baseLink.inertia, links);
+[I0_c, Im_c] = I_I_C(R0_body2I, RL_c, nLJ, baseLink.inertia, links);
 
 fprintf('  casadi vs ref:\n');
 chk('    I0', I0_ref, I0_cas, TOL);

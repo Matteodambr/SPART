@@ -1,4 +1,13 @@
-function [Bij, Bi0, P0, pm] = DiffKinematics_C(R0, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints)
+function [Bij, Bi0, P0, pm] = DiffKinematics_C(R0_body2I, r0, rL, e, g, nLinksJoints, robotConBranch, robotJoints)
+% Computes the differential kinematics of the multibody system.
+%
+% :parameters:
+%   * R0_body2I -- Active rotation from the base-link body CCS to the inertial CCS [3x3].
+%                  V_I = R0_body2I * V_B  (maps body-frame vectors to the inertial frame).
+%   * r0   -- Position of the base-link CoM, expressed in the inertial CCS [3x1].
+%   * rL   -- Link CoM positions, expressed in the inertial CCS [3 x n].
+%   * e    -- Joint rotation/sliding axes, expressed in the inertial CCS [3 x n].
+%   * g    -- Vectors from joint origins to link CoM origins, expressed in the inertial CCS [3 x n].
 
     zeros6n = @(m,n) zeros(m,n);
     zeros3n = @(m,n) zeros(m,n);
@@ -36,7 +45,10 @@ function [Bij, Bi0, P0, pm] = DiffKinematics_C(R0, r0, rL, e, g, nLinksJoints, r
     pm = zeros6n(6, n);
 
     % Base-link twist-propagation matrix
-    P0 = [R0, zeros3n(3, 3); zeros3n(3, 3), eye3()];
+    % P0 maps the base-link generalised velocity [omega_body; r0_dot_inertial]
+    % to the inertial-frame twist.  The top-left block R0_body2I rotates the
+    % body-frame angular velocity omega_body into the inertial frame.
+    P0 = [R0_body2I, zeros3n(3, 3); zeros3n(3, 3), eye3()];
 
     for i = 1:n
         if robotJoints(i).type == 1  % Revolute

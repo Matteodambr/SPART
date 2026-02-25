@@ -74,6 +74,61 @@ The build is triggered automatically if:
 - `SPART_C.so` is older than any `.c` source file (sources were updated)
 - Loading the existing `.so` raises an `OSError` (e.g. wrong architecture)
 
+## Rotation Convention
+
+SPARTpy (and SPART) use **two rotation matrices** with clearly distinct roles.  Understanding which one is expected by each function is important.
+
+### `R0_body2I` — body-to-inertial (active, B → I)
+
+> Maps a vector expressed in the **body frame** into the **inertial frame**:
+>
+> $$V_I = R_{body2I} \, V_B$$
+
+This is the matrix accepted by all kinematics and dynamics functions:
+
+```
+kinematics(R0_body2I, ...)
+diff_kinematics(R0_body2I, ...)
+i_i(R0_body2I, ...)
+```
+
+It is the standard DCM used in SPART: the columns of `R0_body2I` are the body-frame basis vectors expressed in the inertial frame.
+
+### `R0_I2body` — inertial-to-body (active, I → B)
+
+> Maps a vector expressed in the **inertial frame** into the **body frame**:
+>
+> $$V_B = R_{I2body} \, V_I$$
+
+This is the matrix stored inside the **ODE state vector** `y`, and the one accepted by `space_robot_ode_input`:
+
+```
+space_robot_ode_input(t, R0_I2body, ...)
+```
+
+`R0_I2body` is simply the transpose of `R0_body2I`:
+
+```python
+R0_I2body = R0_body2I.T
+```
+
+The ODE integrates the DCM kinematic equation
+
+$$\dot{R}_{I2body} = -[\omega_B]_\times \, R_{I2body}$$
+
+which keeps the state matrix as the inertial-to-body form.  Internally, `space_robot_ode` transposes it before calling kinematics:
+
+```python
+R0_body2I = R0_I2body.T   # done internally — callers supply R0_I2body
+```
+
+### Summary table
+
+| Variable | Direction | Semantics | Used in |
+|---|---|---|---|
+| `R0_body2I` | B → I | $V_I = R \, V_B$ | `kinematics`, `diff_kinematics`, `i_i` |
+| `R0_I2body` | I → B | $V_B = R \, V_I$ | ODE state `y`, `space_robot_ode_input` |
+
 ## Quick Start
 
 ```python
@@ -86,7 +141,10 @@ urdf = os.path.join('URDF_models', 'floating_7dof_manipulator.urdf')
 spart = SPART(urdf)
 
 # Robot state
-R0    = np.eye(3)                                          # base orientation (DCM)
+# R0_body2I is the active rotation from the base-link body CCS to the inertial CCS:
+#   V_I = R0_body2I @ V_B  (maps body-frame vectors to the inertial frame)
+# For ODE integration, R0_I2body = R0_body2I.T is stored in the state vector.
+R0_body2I = np.eye(3)                                          # base orientation (body -> inertial)
 r0    = np.array([0., 0., 0.])                            # base position [m]
 qm    = np.deg2rad([30., 20., 30., 20., 30., 20., 30.])  # joint angles [rad]
 u0    = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])        # base twist [m/s, rad/s]
@@ -97,16 +155,16 @@ wF0   = np.zeros(6)   # external wrench on base
 wFm   = np.zeros((6, spart.robot.n_links_joints))  # external wrenches on links
 
 # Kinematics
-RJ, RL, rJ, rL, e, g = spart.kinematics(R0, r0, qm)
+RJ, RL, rJ, rL, e, g = spart.kinematics(R0_body2I, r0, qm)
 
 # Differential kinematics
-Bij, Bi0, P0, pm = spart.diff_kinematics(R0, r0, rL, e, g)
+Bij, Bi0, P0, pm = spart.diff_kinematics(R0_body2I, r0, rL, e, g)
 
 # Velocities
 t0, tL = spart.velocities(Bij, Bi0, P0, pm, u0, um)
 
 # Inertias in inertial frame
-I0, Im = spart.i_i(R0, RL)
+I0, Im = spart.i_i(R0_body2I, RL)
 
 # Accelerations
 t0dot, tLdot = spart.accelerations(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot)
@@ -124,8 +182,9 @@ from scipy.integrate import solve_ivp
 tau0_traj = np.zeros((6, 1))                         # no base torque
 taum_traj = np.array([2., 1., 0.5, 0., 0., 0., 0.]) # joint torques [Nm]
 
+# space_robot_ode_input expects R0_I2body = R0_body2I.T
 _, y0, tau_ode = spart.space_robot_ode_input(
-    0.0, R0, r0, np.zeros(6), qm, np.zeros(7), tau0_traj, taum_traj)
+    0.0, R0_body2I.T, r0, np.zeros(6), qm, np.zeros(7), tau0_traj, taum_traj)
 
 sol = solve_ivp(
     fun=lambda t, y: spart.space_robot_ode(t, y, tau_ode),
@@ -139,10 +198,10 @@ spart.animate_trajectory(sol.t, sol.y.T, fps=30, backend='matplotlib')
 
 | Method | Description |
 |--------|-------------|
-| `kinematics(R0, r0, qm)` | Joint/link poses, joint axes and CoM positions |
-| `diff_kinematics(R0, r0, rL, e, g)` | Jacobian-related matrices `Bij`, `Bi0`, `P0`, `pm` |
+| `kinematics(R0_body2I, r0, qm)` | Joint/link poses, joint axes and CoM positions |
+| `diff_kinematics(R0_body2I, r0, rL, e, g)` | Jacobian-related matrices `Bij`, `Bi0`, `P0`, `pm` |
 | `velocities(Bij, Bi0, P0, pm, u0, um)` | Spatial velocities of base and links |
-| `i_i(R0, RL)` | Inertia tensors expressed in the inertial frame |
+| `i_i(R0_body2I, RL)` | Inertia tensors expressed in the inertial frame |
 | `accelerations(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot)` | Spatial accelerations |
 | `inverse_dynamics(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0)` | Generalised forces from motion |
 | `forward_dynamics(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um)` | Accelerations from forces |

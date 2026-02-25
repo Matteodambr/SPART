@@ -1147,10 +1147,10 @@ class SPART:
     Examples
     --------
     >>> spart = SPART('URDF_models/floating_7dof_manipulator.urdf')
-    >>> RJ, RL, rJ, rL, e, g = spart.kinematics(R0, r0, qm)
-    >>> Bij, Bi0, P0, pm     = spart.diff_kinematics(R0, r0, rL, e, g)
+    >>> RJ, RL, rJ, rL, e, g = spart.kinematics(R0_body2I, r0, qm)
+    >>> Bij, Bi0, P0, pm     = spart.diff_kinematics(R0_body2I, r0, rL, e, g)
     >>> t0, tL               = spart.velocities(Bij, Bi0, P0, pm, u0, um)
-    >>> I0, Im               = spart.i_i(R0, RL)
+    >>> I0, Im               = spart.i_i(R0_body2I, RL)
 
     # Switch robot — C structs are rebuilt automatically
     >>> spart.robot = 'URDF_models/kuka_iiwa.urdf'
@@ -1254,27 +1254,33 @@ class SPART:
     # Kinematics
     # ------------------------------------------------------------------
 
-    def kinematics(self, R0, r0, qm):
+    def kinematics(self, R0_body2I, r0, qm):
         """
         Compute forward kinematics via the compiled SPART_C.so.
 
         Parameters
         ----------
-        R0  : (3,3) array  – base rotation matrix
-        r0  : (3,)  array  – base position vector
+        R0_body2I : (3,3) array
+            Active rotation from the base-link body CCS to the inertial CCS.
+            Maps body-frame vectors to the inertial frame:
+                V_I = R0_body2I @ V_B
+            NOTE: this is the BODY->INERTIAL rotation.  If your state vector
+            stores R0_I2body (the inertial->body rotation used in the ODE),
+            pass its transpose here: ``R0_body2I = R0_I2body.T``.
+        r0  : (3,)  array – base position vector (inertial frame)
         qm  : (n_q,) array – joint angles
 
         Returns
         -------
-        RJ, RL : (3, 3*n)  rotation matrices of joints / links
-        rJ, rL : (3,  n)   positions of joints / links
+        RJ, RL : (3, 3*n)  rotation matrices of joints / links (body-to-inertial)
+        rJ, rL : (3,  n)   positions of joints / links (inertial frame)
         e      : (3,  n)   joint axes in inertial frame
-        g      : (3,  n)   vector from joint to link CoM
+        g      : (3,  n)   vector from joint to link CoM (inertial frame)
         """
         lib = _get_spart_lib()
         n   = self._robot.n_links_joints
 
-        R0_c = np.asarray(R0, dtype=np.float64, order='F').flatten(order='F')
+        R0_c = np.asarray(R0_body2I, dtype=np.float64, order='F').flatten(order='F')
         r0_c = np.asarray(r0, dtype=np.float64).flatten()
         qm_c = np.asarray(qm, dtype=np.float64).flatten()
 
@@ -1315,14 +1321,20 @@ class SPART:
     # Differential Kinematics
     # ------------------------------------------------------------------
 
-    def diff_kinematics(self, R0, r0, rL, e, g):
+    def diff_kinematics(self, R0_body2I, r0, rL, e, g):
         """
         Compute the motion-propagation matrices via DiffKinematics_C.
 
         Parameters
         ----------
-        R0  : (3,3)   – base rotation matrix
-        r0  : (3,)    – base position
+        R0_body2I : (3,3)
+            Active rotation from the base-link body CCS to the inertial CCS.
+            Maps body-frame vectors to the inertial frame:
+                V_I = R0_body2I @ V_B
+            NOTE: this is the BODY->INERTIAL rotation.  If your state vector
+            stores R0_I2body (the inertial->body rotation used in the ODE),
+            pass its transpose here: ``R0_body2I = R0_I2body.T``.
+        r0  : (3,)    – base position (inertial frame)
         rL  : (3, n)  – link CoM positions  (from kinematics)
         e   : (3, n)  – joint axes          (from kinematics)
         g   : (3, n)  – joint-to-CoM vectors (from kinematics)
@@ -1338,7 +1350,7 @@ class SPART:
         n    = self._robot.n_links_joints
         _pd  = ctypes.POINTER(ctypes.c_double)
 
-        R0_c = np.asarray(R0, dtype=np.float64, order='F').flatten(order='F')
+        R0_c = np.asarray(R0_body2I, dtype=np.float64, order='F').flatten(order='F')
         r0_c = np.asarray(r0, dtype=np.float64).flatten()
 
         R0_ptr = R0_c.ctypes.data_as(_pd)
@@ -1520,14 +1532,22 @@ class SPART:
     # Inertia in inertial frame
     # ------------------------------------------------------------------
 
-    def i_i(self, R0, RL):
+    def i_i(self, R0_body2I, RL):
         """
         Compute inertia tensors expressed in the inertial frame via I_I_C.
 
         Parameters
         ----------
-        R0 : (3,3)    – base rotation matrix
-        RL : (3, 3*n) – link rotation matrices  (from kinematics)
+        R0_body2I : (3,3)
+            Active rotation from the base-link body CCS to the inertial CCS.
+            Maps body-frame vectors to the inertial frame:
+                V_I = R0_body2I @ V_B
+            Used to project the body-frame inertia tensor via:
+                I0_inertial = R0_body2I @ I0_body @ R0_body2I.T
+            NOTE: this is the BODY->INERTIAL rotation.  If your state vector
+            stores R0_I2body (the inertial->body rotation used in the ODE),
+            pass its transpose here: ``R0_body2I = R0_I2body.T``.
+        RL : (3, 3*n) – link rotation matrices (body-to-inertial, from kinematics)
 
         Returns
         -------
@@ -1538,7 +1558,7 @@ class SPART:
         n    = self._robot.n_links_joints
         _pd  = ctypes.POINTER(ctypes.c_double)
 
-        R0_c   = np.asarray(R0, dtype=np.float64, order='F').flatten(order='F')
+        R0_c   = np.asarray(R0_body2I, dtype=np.float64, order='F').flatten(order='F')
         R0_ptr = R0_c.ctypes.data_as(_pd)
 
         base_I_c = np.asarray(self._robot.base_link_inertia, dtype=np.float64, order='F').flatten(order='F')
@@ -1748,12 +1768,44 @@ class SPART:
         return u0dot, umdot
     
     # ------------------------------------------------------------------
-    # Space-Robot ODE input generation R0, r0, ... -> y, tau
+    # Space-Robot ODE input generation R0_I2body, r0, ... -> y, tau
     # ------------------------------------------------------------------
-    def space_robot_ode_input(self, t, R0, r0, u0, qm, um, tau0, taum):
+    def space_robot_ode_input(self, t, R0_I2body, r0, u0, qm, um, tau0, taum):
+        """
+        Pack the robot state into the ODE state vector ``y`` and control vector ``tau``.
+
+        Rotation convention
+        -------------------
+        ``R0_I2body`` must be the **active rotation from the inertial to the
+        base-link body CCS**::
+
+            V_B = R0_I2body @ V_I
+
+        This is the rotation that is integrated by the ODE (its derivative is
+        ``R0_I2body_dot = -skew(omega_B) @ R0_I2body``).  It equals the
+        **transpose** of the body->inertial rotation expected by the core SPART
+        functions (Kinematics, DiffKinematics, I_I, FD)::
+
+            R0_I2body = R0_body2I.T
+
+        Parameters
+        ----------
+        t        : float   – current time
+        R0_I2body : (3,3)  – active inertial->body rotation (see above)
+        r0       : (3,)    – base CoM position in inertial frame
+        u0       : (6,)    – base generalised velocity [omega_body(3); r0_dot(3)]
+        qm       : (n_q,)  – joint angles
+        um       : (n_q,)  – joint velocities
+        tau0     : (6,)    – base generalised forces
+        taum     : (n_q,)  – joint torques
+
+        Returns
+        -------
+        t, y_ode, tau_ode  – ready to unpack into ``space_robot_ode``
+        """
         if not self._ode_input_checked:
             nq = self._robot.n_q
-            R0_arr  = np.asarray(R0)
+            R0_arr  = np.asarray(R0_I2body)
             r0_arr  = np.asarray(r0).flatten()
             u0_arr  = np.asarray(u0).flatten()
             qm_arr  = np.asarray(qm).flatten()
@@ -1762,7 +1814,7 @@ class SPART:
             taum_arr = np.asarray(taum).flatten()
 
             if R0_arr.shape != (3, 3):
-                raise ValueError(f"R0 must be (3, 3), got {R0_arr.shape}")
+                raise ValueError(f"R0_I2body must be (3, 3), got {R0_arr.shape}")
             if r0_arr.shape != (3,):
                 raise ValueError(f"r0 must have 3 elements, got {r0_arr.shape}")
             if u0_arr.shape != (6,):
@@ -1779,7 +1831,7 @@ class SPART:
             self._ode_input_checked = True
 
         y_ode = np.concatenate([                        # handles both (N,) and (N,1)
-            np.asarray(R0).flatten(order='F'),
+            np.asarray(R0_I2body).flatten(order='F'),  # R0_I2body packed col-major
             np.asarray(r0).ravel(), # ravel() makes vectors of (N,) dimension into (N,1) to avoid errors
             np.asarray(u0).ravel(),
             np.asarray(qm).ravel(),
@@ -1804,9 +1856,25 @@ class SPART:
         """
         Compute the ODE time derivative for a free-floating space robot.
 
+        Rotation convention
+        -------------------
+        The first 9 elements of the state vector ``y`` store ``R0_I2body``
+        flattened in column-major order.  ``R0_I2body`` is the **active
+        rotation from the inertial to the base-link body CCS**::
+
+            V_B = R0_I2body @ V_I
+
+        Internally it is transposed to ``R0_body2I = R0_I2body.T`` before
+        being forwarded to the core SPART functions (Kinematics, DiffKinematics,
+        I_I, FD), which all expect the BODY->INERTIAL active rotation::
+
+            V_I = R0_body2I @ V_B
+
+        State layout
+        ------------
         The state vector ``y`` is laid out as::
 
-            y = [R0_flat(9, col-major); r0(3); w0_body(3); r0_dot(3); qm(nQ); qm_dot(nQ)]
+            y = [R0_I2body_flat(9, col-major); r0(3); w0_body(3); r0_dot(3); qm(nQ); qm_dot(nQ)]
 
         total length = 18 + 2*nQ.
 
@@ -1876,19 +1944,21 @@ class SPART:
 
         return dydt
 
-    def benchmark(self, n_runs=1000, R0=None, r0=None, qm=None,
+    def benchmark(self, n_runs=1000, R0_body2I=None, r0=None, qm=None,
                   u0=None, um=None, u0dot=None, umdot=None,
                   wF0=None, wFm=None, tau0=None, taum=None):
         """
         Time each SPART function over ``n_runs`` iterations and print a summary.
 
-        Default inputs are zeros (identity rotation for R0) unless supplied.
+        Default inputs are zeros (identity rotation for R0_body2I) unless supplied.
 
         Parameters
         ----------
         n_runs : int
             Number of repetitions per function (default 1000).
-        R0, r0, qm, u0, um, u0dot, umdot, wF0, wFm, tau0, taum : array-like, optional
+        R0_body2I : (3,3) array-like, optional
+            Active body->inertial rotation (default: identity).
+        r0, qm, u0, um, u0dot, umdot, wF0, wFm, tau0, taum : array-like, optional
             Override the default zero inputs.
         """
         import timeit as _timeit
@@ -1897,7 +1967,7 @@ class SPART:
         n  = self._robot.n_links_joints
 
         # --- Default inputs ---
-        if R0    is None: R0    = np.eye(3)
+        if R0_body2I is None: R0_body2I = np.eye(3)
         if r0    is None: r0    = np.zeros(3)
         if qm    is None: qm    = np.zeros(nq)
         if u0    is None: u0    = np.zeros(6)
@@ -1913,14 +1983,14 @@ class SPART:
 
         # 1. kinematics
         def _run_kin():
-            return self.kinematics(R0, r0, qm)
+            return self.kinematics(R0_body2I, r0, qm)
         t = _timeit.timeit(_run_kin, number=n_runs)
         results['kinematics'] = t
         RJ, RL, rJ, rL, e, g = _run_kin()
 
         # 2. diff_kinematics
         def _run_dk():
-            return self.diff_kinematics(R0, r0, rL, e, g)
+            return self.diff_kinematics(R0_body2I, r0, rL, e, g)
         t = _timeit.timeit(_run_dk, number=n_runs)
         results['diff_kinematics'] = t
         Bij, Bi0, P0, pm = _run_dk()
@@ -1934,7 +2004,7 @@ class SPART:
 
         # 4. i_i
         def _run_ii():
-            return self.i_i(R0, RL)
+            return self.i_i(R0_body2I, RL)
         t = _timeit.timeit(_run_ii, number=n_runs)
         results['i_i'] = t
         I0, Im = _run_ii()
@@ -1959,9 +2029,10 @@ class SPART:
         results['forward_dynamics'] = t
 
         # 8. space_robot_ode
-        # Build the state vector y = [R0_flat(9); r0(3); u0(6); qm(nq); um(nq)]
-        R0_flat = np.asarray(R0, dtype=np.float64).flatten(order='F')
-        _y_ode  = np.concatenate([R0_flat, r0, u0, qm, um])
+        # Build the ODE state vector: R0_I2body = R0_body2I.T is packed col-major
+        # y = [R0_I2body_flat(9); r0(3); u0(6); qm(nq); um(nq)]
+        R0_I2body_flat = np.asarray(R0_body2I, dtype=np.float64).T.flatten(order='F')
+        _y_ode  = np.concatenate([R0_I2body_flat, r0, u0, qm, um])
         _tau_ode = np.concatenate([tau0, taum])
         def _run_ode():
             return self.space_robot_ode(0.0, _y_ode, _tau_ode)
@@ -1997,7 +2068,7 @@ class SPART:
         y_arr     : (N, 18+2*nq) state matrix; each row is one ODE state vector
                     in the layout produced by ``space_robot_ode_input``::
 
-                        [R0_flat(9,col-major); r0(3); u0(6); qm(nq); qm_dot(nq)]
+                        [R0_I2body_flat(9,col-major); r0(3); u0(6); qm(nq); qm_dot(nq)]
 
         fps       : int, playback frame-rate (default 30).
         save_path : str or None.  If given (e.g. ``'traj.gif'`` or ``'traj.mp4'``)

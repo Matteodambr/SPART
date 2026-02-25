@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spartpy"
-version = "1.0.1"
+version = "1.1.0"
 description = "Python port of SPART: dynamics and control toolkit for free-flyer space robots"
 readme = "SPARTpy/README.md"
 license = { text = "BSD-3-Clause" }
@@ -44,4 +44,5 @@ SPARTpy = [
     "_c_src/SPART_C/*.def",
     "_c_src/SPART_C/rtwtypes.h",
     "_c_src/SPART_C/tmwtypes.h",
+    "urdf/*.urdf",
 ]

@@ -1,4 +1,12 @@
-function [RJ, RL, rJ, rL, e, g] = Kinematics_C(R0, r0, qm, nLinksJoints, robotJoints, robotLinks)
+function [RJ, RL, rJ, rL, e, g] = Kinematics_C(R0_body2I, r0, qm, nLinksJoints, robotJoints, robotLinks)
+% Computes the forward kinematics of the multibody system.
+%
+% :parameters:
+%   * R0_body2I -- Active rotation from the base-link body CCS to the inertial CCS [3x3].
+%                  V_I = R0_body2I * V_B  (maps body-frame vectors to the inertial frame).
+%   * r0        -- Position of the base-link CoM w.r.t. the inertial frame origin, expressed in the inertial CCS [3x1].
+%   * qm        -- Joint displacements [n_q x 1].
+%   * nLinksJoints, robotJoints, robotLinks -- Robot model parameters.
 
 zeros3n = @(m,n) zeros(m,n);
 zeros1n = @(m,n) zeros(m,n);
@@ -20,7 +28,7 @@ rL = zeros3n(3, n);
 e  = zeros3n(3, n);
 g  = zeros3n(3, n);
 
-T0 = [R0, r0; zeros1n(1, 3), sx1()];
+T0 = [R0_body2I, r0; zeros1n(1, 3), sx1()];
 
 for i = 1:n
     cjoint = robotJoints(i);
