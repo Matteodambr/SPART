@@ -1,35 +1,96 @@
-# SPART-SPARTpy
+# SPART-2.0 / SPARTpy
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/Matteodambr/SPART) ![GitHub forks](https://img.shields.io/github/forks/NPS-SRL/SPART?style=social) ![GitHub SPART stars](https://img.shields.io/github/stars/NPS-SRL/SPART?style=social) ![GitHub contributors](https://img.shields.io/github/contributors/Matteodambr/SPART) ![Open Issues](https://img.shields.io/github/issues-raw/NPS-SRL/SPART) ![Top Language](https://img.shields.io/github/languages/top/Matteodambr/SPART) ![Code Size](https://img.shields.io/github/languages/code-size/Matteodambr/SPART) ![GitHub issues](https://img.shields.io/github/issues/NPS-SRL/SPART) ![GitHub pull requests](https://img.shields.io/github/issues-pr/NPS-SRL/SPART)
 
-This repository builds on the original SPART library ([link](https://github.com/NPS-SRL/SPART)) that is no longer maintained, adding additional functionalities and modules that are useful when dealing with floating-base systems. Many of the original SPART functions have been updated for compatibility with Matlab code generation and their relevant C files have been generated as dynamic libraries, so that they can be linked to other projects, while maintaining full flexibility for any inputted URDF model without the need to rebuild the scripts. Finally, the biggest update has been to create a Python module to automatically call the code-generated SPART C/C++ functions directly in Python, demonstrating the overall higher efficiency in the function calls with respect to the native Matlab execution. This is used for a smoother integration within Python robotics/AI modules and research projects that are currently ongoing.
+**SPARTpy** is the Python interface to [SPART](https://github.com/Matteodambr/SPART), an open-source toolkit for modeling and controlling floating-base space robots.  It wraps MATLAB Coder-generated C functions via `ctypes`, delivering kinematics, differential kinematics, velocities, accelerations, and forward/inverse dynamics at speeds faster than native MATLAB execution, for use within Robotics/AI projects within Python.
 
-The main updates to this repo are the following:
-1. Development of a Python module (`SPARTpy`) to directly use highly efficient SPART code-generated C functions in Python — faster than direct calls in MATLAB, even accounting for all Python overhead.
-2. Added new space robot URDF models: a 3D system with a 7-DoF manipulator, and a 2D system with a 4-DoF manipulator, both redundant and easily customizable from their respective URDF files.
-3. Added ODE functions for integrating the dynamics of the space robot, both in Simulink and MATLAB (WIP: Python ODE).
-4. Added initial condition generation and postprocessing functions for simpler handling of dynamics integration.
-5. Homogenized input handling of SPART functions to make conventions consistent and more user-friendly.
+This repository builds on the original SPART library ([link](https://github.com/NPS-SRL/SPART)) that is no longer maintained.  The main additions are:
+
+1. A Python package (`SPARTpy`) that calls highly efficient MATLAB Coder-generated C functions directly from Python — faster than native MATLAB, even accounting for all Python overhead.
+2. New space robot URDF models: a 3D system with a 7-DoF manipulator and a 2D system with a 4-DoF manipulator, both redundant and easily customizable.
+3. ODE functions for integrating space robot dynamics, in both Simulink and MATLAB (Python ODE WIP).
+4. Initial condition generation and postprocessing helpers for dynamics integration.
+5. Homogenized function interfaces for consistent, user-friendly conventions.
 
 ---
 
-## SPARTpy — Python Package
-
-### Installation
+## Installation
 
 ```bash
 pip install spartpy
 ```
 
-The package ships the MATLAB Coder-generated C sources. On the first import on a new machine, `gcc` is called automatically to compile them into a shared library (`SPART_C.so`).
+The package ships the MATLAB Coder-generated C sources.  On the first import on a new machine, `gcc` is invoked automatically to compile them into a shared library (`SPART_C.so`).  Requires `gcc` with OpenMP support:
 
-**Requirements:**
-- `gcc` with OpenMP: `sudo apt install gcc`
-- Intel OpenMP runtime (`libiomp5.so`): included with any MATLAB installation, or install via `conda install -c intel openmp`
+```bash
+sudo apt install gcc   # Debian / Ubuntu
+```
 
-See the [SPARTpy README](SPARTpy/README.md) for full details on the build process.
+## Dependencies
 
-### Quick Start
+- Python ≥ 3.8
+- NumPy
+- SciPy *(optional — needed for trajectory integration)*
+- yourdfpy / matplotlib *(optional — needed for visualisation)*
+
+---
+
+## Building / Rebuilding the C Back-end
+
+SPARTpy calls MATLAB Coder-generated C code through `ctypes`.  The compiled shared library (`SPART_C.so`) is rebuilt **automatically on first import** whenever it is missing or out of date.  Two system libraries must be present for this to work:
+
+### 1. `gcc` with OpenMP
+
+Used to compile `SPART_C.so` from the bundled `.c` sources:
+
+```bash
+# Debian / Ubuntu
+sudo apt install gcc
+
+# Conda (if preferred)
+conda install -c conda-forge gcc
+```
+
+### 2. Intel OpenMP runtime (`libiomp5.so`)
+
+The `.so` was generated by MATLAB Coder, which links against Intel OpenMP.  The library is searched automatically in the following order:
+
+1. Any MATLAB installation under `/usr/local/MATLAB/R*/sys/os/glnxa64/`
+2. System paths: `/usr/lib/x86_64-linux-gnu/libiomp5.so`, `/usr/lib/libiomp5.so`, `/usr/local/lib/libiomp5.so`
+3. `$MATLAB_ROOT/lib/libiomp5.so`
+
+If none of those exist, install it via conda or the Intel package:
+
+```bash
+conda install -c intel openmp
+# or
+sudo apt install intel-mkl          # ships libiomp5
+```
+
+Alternatively, add the directory containing `libiomp5.so` to `LD_LIBRARY_PATH`:
+
+```bash
+export LD_LIBRARY_PATH=/path/to/dir/containing/libiomp5:$LD_LIBRARY_PATH
+```
+
+### 3. `tmwtypes.h` (build-time only)
+
+The C sources include `tmwtypes.h`, a MATLAB Coder header.  A copy is shipped alongside the `.c` files in the package, so no MATLAB installation is required at build time.  If for any reason it is missing, the build logic searches for a MATLAB installation and copies it automatically.  You can also force it by setting:
+
+```bash
+export MATLAB_ROOT=/usr/local/MATLAB/R2024b
+```
+
+### When is a rebuild triggered?
+
+The build is triggered automatically if:
+- `SPART_C.so` does not exist (e.g. first install on the machine)
+- `SPART_C.so` is older than any `.c` source file (sources were updated)
+- Loading the existing `.so` raises an `OSError` (e.g. wrong architecture)
+
+---
+
+## Quick Start
 
 ```python
 import os
@@ -92,50 +153,66 @@ spart.animate_trajectory(sol.t, sol.y.T, fps=30, backend='matplotlib')
 
 ---
 
-# Copy of the Original SPART README:
+## Available Functions
 
-[Read the Docs - README](https://spart.readthedocs.io/en/latest/)
+| Method | Description |
+|--------|-------------|
+| `kinematics(R0, r0, qm)` | Joint/link poses, joint axes and CoM positions |
+| `diff_kinematics(R0, r0, rL, e, g)` | Jacobian-related matrices `Bij`, `Bi0`, `P0`, `pm` |
+| `velocities(Bij, Bi0, P0, pm, u0, um)` | Spatial velocities of base and links |
+| `i_i(R0, RL)` | Inertia tensors expressed in the inertial frame |
+| `accelerations(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot)` | Spatial accelerations |
+| `inverse_dynamics(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0)` | Generalised forces from motion |
+| `forward_dynamics(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um)` | Accelerations from forces |
+| `space_robot_ode(t, y, tau)` | ODE right-hand side for `scipy.integrate.solve_ivp` |
+| `animate_trajectory(t, Y, fps, backend)` | Visualise a trajectory (matplotlib or yourdfpy) |
+| `benchmark(n_runs)` | Time all functions and print a summary table |
 
-[Github - README](https://github.com/NPS-SRL/SPAR)
+---
+
+## License
+
+BSD 3-Clause.  See [LICENSE.md](LICENSE.md).
+
+---
+
+<details>
+<summary><b>Original SPART (MATLAB) README</b></summary>
+
+[Read the Docs](https://spart.readthedocs.io/en/latest/) · [Original GitHub](https://github.com/NPS-SRL/SPART)
 
 SPART is an open-source modeling and control toolkit for mobile-base robotic multibody systems with kinematic tree topologies (*i.e.*, open-loop multi-branched systems).
 SPART is MATLAB-based and ROS-compatible, allowing to prototype in simulation and deploy to hardware controllers for robotic systems.
 
 Given a URDF description of a multibody system, SPART computes the system's:
 
-* Kinematics -- pose of the links and joints (`i.e.`, rotation matrices and position vectors).
-* Differential kinematics -- operational space velocities and accelerations, as well as the geometric Jacobians and their time derivatives.
-* Dynamics -- generalized inertia and convective inertia matrices.
-* Forward/Inverse dynamics -- solves both problems, including the floating-base case.
+* Kinematics — pose of the links and joints (*i.e.*, rotation matrices and position vectors).
+* Differential kinematics — operational space velocities and accelerations, as well as the geometric Jacobians and their time derivatives.
+* Dynamics — generalized inertia and convective inertia matrices.
+* Forward/Inverse dynamics — solves both problems, including the floating-base case.
 
-SPART supports symbolic computation and analytic expressions for all kinematic and dynamic quantities can be obtained.
+SPART supports symbolic computation and analytic expressions for all kinematic and dynamic quantities.
 
-One of the main benefits of SPART is the following, "In addition to modeling the kinematics and dynamics, the resulting Simulink models are suitable for code generation and thus can be readily compiled and executed into embedded hardware or integrated with third party tools, and includes tools to help the user create control and analysis applications."
+### MATLAB Installation
 
-## Installation
-
-Just clone or download the toolkit and run the `SPART2path.m` script. This will add all the SPART MATLAB functions and the Simulink library to the path and save it. Then you can use it as any other MATLAB toolbox.
+Clone or download the toolkit and run the `SPART2path.m` script. This adds all SPART functions and the Simulink library to the MATLAB path and saves it.
 
 To run an example go to `Examples/URDF_Tutorial` and run:
 
-	URDF_Tutorial
+    URDF_Tutorial
 
-## Documentation
+### Documentation
 
-Up to date documentation and tutorials are available at [spart.readthedocs.org](http://spart.readthedocs.org).
+Up to date documentation and tutorials: [spart.readthedocs.org](http://spart.readthedocs.org)
 
-## Examples
+### Examples
 
-Here is an example of a planar Desired-Reaction-Maneuver, where the kinematic redundancy of a manipulator is exploited to make the floating base point towards the end-effector, while this one is moving along a prescribed path.
+Planar Desired-Reaction-Maneuver — kinematic redundancy exploited to keep the base pointing at the end-effector while it follows a prescribed path:
 
 ![DRM](docs/source/Figures/DRM.gif "Desired-Reaction-Maneuver")
 
-SPART can also be used to control real manipulators. Here is an example of resolved motion-rate control of the R5D3 manipulator (the tip of the end-effector is describing a triangle in space).
+Resolved motion-rate control of the R5D3 manipulator (end-effector tracing a triangle):
 
 ![R5D3](docs/source/Figures/R5D3.gif "R5D3 resolved motion-rate control")
 
-## License
-
-This software is released under the LGPLv3 license.
-
-
+</details>
