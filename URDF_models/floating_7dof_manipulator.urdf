@@ -23,8 +23,21 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="1579.20"/>
-      <inertia ixx="700" ixy="0" ixz="0" iyy="1577.74" iyz="0" izz="1665.94"/>
+      <inertia ixx="699.98" ixy="0" ixz="0" iyy="1621.45" iyz="0" izz="1621.45"/>
     </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="3.1083 1.6308 1.6308"/>
+      </geometry>
+      <material name="Grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="3.1083 1.6308 1.6308"/>
+      </geometry>
+    </collision>
   </link>
 
   <!-- Joint 1 -->

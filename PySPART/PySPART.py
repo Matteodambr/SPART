@@ -311,6 +311,68 @@ def _so_needs_rebuild(so_path):
     return False
 
 
+# ---------------------------------------------------------------------------
+# Box-geometry helpers (used by the matplotlib trajectory animator)
+# ---------------------------------------------------------------------------
+
+# 8 corners of a unit box (±1, ±1, ±1), row = one corner
+_BOX_CORNERS_UNIT = np.array(
+    [[-1, -1, -1], [-1, -1,  1], [-1,  1, -1], [-1,  1,  1],
+     [ 1, -1, -1], [ 1, -1,  1], [ 1,  1, -1], [ 1,  1,  1]],
+    dtype=float)
+
+# 12 edges as index pairs (connects only adjacent corners)
+_BOX_EDGES = [
+    (0, 1), (2, 3), (4, 5), (6, 7),   # along Z
+    (0, 2), (1, 3), (4, 6), (5, 7),   # along Y
+    (0, 4), (1, 5), (2, 6), (3, 7),   # along X
+]
+
+
+def _box_segments(half_extents, R0, r0):
+    """
+    Return a list of (2, 3) arrays representing the 12 edges of a box
+    with the given half-extents, rotated by R0 and translated to r0.
+    """
+    corners = (_BOX_CORNERS_UNIT * np.asarray(half_extents))  # (8, 3) local
+    corners_w = (R0 @ corners.T).T + r0                       # (8, 3) world
+    return [np.array([corners_w[i], corners_w[j]]) for i, j in _BOX_EDGES]
+
+
+def _parse_base_box_halfextents(urdf_path):
+    """
+    Parse the <box size> of the first <visual> element of the root link
+    (the link not referenced as a child in any joint) from a URDF file.
+    Returns a (3,) numpy array of half-extents, or None.
+    """
+    try:
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(urdf_path)
+        root = tree.getroot()
+        # Find child link names from all joints
+        children = {j.find('child').get('link')
+                    for j in root.iter('joint')
+                    if j.find('child') is not None}
+        # The base link is whichever <link> is not a child
+        base_link_name = None
+        for link in root.iter('link'):
+            if link.get('name') not in children:
+                base_link_name = link.get('name')
+                break
+        if base_link_name is None:
+            return None
+        for link in root.iter('link'):
+            if link.get('name') == base_link_name:
+                box = link.find('.//visual/geometry/box')
+                if box is not None:
+                    size = np.fromstring(box.get('size', ''), sep=' ')
+                    if size.size == 3:
+                        return size / 2.0
+    except Exception:
+        pass
+    return None
+
+
 def _load_so(so_path, init_fn, fn_name, fn_argtypes):
     """
     Load a MATLAB Coder-generated shared library (once) and register its symbols.
@@ -396,14 +458,14 @@ def _load_so(so_path, init_fn, fn_name, fn_argtypes):
     return lib
 
 
-def _get_kinematics_lib():
+def _get_spart_lib():
     """Load SPART_C.so and register all compiled SPART functions."""
     _p  = ctypes.c_void_p
     _pd = ctypes.POINTER(ctypes.c_double)
     lib = _load_so(
         so_path     = os.path.join(_CODEGEN_ROOT, 'SPART_C', 'SPART_C.so'),
         init_fn     = 'SPART_C_initialize',
-        fn_name     = 'Kinematics_C',
+        fn_name     = 'Kinematics_C', # Correct, its here only because its the first function loaded. The others are then appended.
         fn_argtypes = [
             _pd,              # R0[9]
             _pd,              # r0[3]
@@ -748,6 +810,8 @@ class SPART:
         self._c_con_branch  = None   # flat numpy F-order for con_branch
         self._c_con_child   = None   # flat numpy F-order for con_child
         self._c_con_cb      = None   # flat numpy for con_child_base
+        self._ode_input_checked = False  # flag: input-size check done once
+        self._urdf_path     = None   # stored when robot is loaded from a file
         self.robot = robot           # triggers the property setter
 
     # ------------------------------------------------------------------
@@ -763,6 +827,7 @@ class SPART:
     def robot(self, value):
         """Assign a new robot; accepts a URDF path (str) or a RobotModel."""
         if isinstance(value, str):
+            self._urdf_path = os.path.abspath(value)
             value = load_robot(value)
         if not isinstance(value, RobotModel):
             raise TypeError("robot must be a URDF path (str) or a RobotModel instance")
@@ -782,6 +847,9 @@ class SPART:
         self._c_con_branch = np.asarray(value.con_branch, dtype=np.float64, order='F')
         self._c_con_child  = np.asarray(value.con_child,  dtype=np.float64, order='F')
         self._c_con_cb     = np.asarray(value.con_child_base, dtype=np.float64).flatten()
+
+        # A new robot means input sizes may differ; re-run ODE input check
+        self._ode_input_checked = False
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -843,7 +911,7 @@ class SPART:
         e      : (3,  n)   joint axes in inertial frame
         g      : (3,  n)   vector from joint to link CoM
         """
-        lib = _get_kinematics_lib()
+        lib = _get_spart_lib()
         n   = self._robot.n_links_joints
 
         R0_c = np.asarray(R0, dtype=np.float64, order='F').flatten(order='F')
@@ -906,7 +974,7 @@ class SPART:
         P0  : (6, 6)       – base-link motion subspace (as a numpy (6,6) array)
         pm  : (6, n)       – joint motion subspace
         """
-        lib  = _get_kinematics_lib()
+        lib  = _get_spart_lib()
         n    = self._robot.n_links_joints
         _pd  = ctypes.POINTER(ctypes.c_double)
 
@@ -976,7 +1044,7 @@ class SPART:
         t0 : (6,)    – base-link twist
         tL : (6, n)  – link twist matrix
         """
-        lib = _get_kinematics_lib()
+        lib = _get_spart_lib()
         n   = self._robot.n_links_joints
         _pd = ctypes.POINTER(ctypes.c_double)
 
@@ -1043,7 +1111,7 @@ class SPART:
         t0dot : (6,)    – base-link twist rate
         tLdot : (6, n)  – link twist-rate matrix
         """
-        lib = _get_kinematics_lib()
+        lib = _get_spart_lib()
         n   = self._robot.n_links_joints
         _pd = ctypes.POINTER(ctypes.c_double)
 
@@ -1106,7 +1174,7 @@ class SPART:
         I0 : (3,3)    – base-link inertia in inertial frame
         Im : (n, 3,3) – per-link inertia tensors in inertial frame
         """
-        lib  = _get_kinematics_lib()
+        lib  = _get_spart_lib()
         n    = self._robot.n_links_joints
         _pd  = ctypes.POINTER(ctypes.c_double)
 
@@ -1165,7 +1233,7 @@ class SPART:
         tau0 : (6,)    – base generalised force
         taum : (n_q,)  – joint torques
         """
-        lib = _get_kinematics_lib()
+        lib = _get_spart_lib()
         n   = self._robot.n_links_joints
         _pd = ctypes.POINTER(ctypes.c_double)
 
@@ -1255,7 +1323,7 @@ class SPART:
         u0dot  : (6,)    – base generalised acceleration
         umdot  : (n_q,)  – joint accelerations
         """
-        lib = _get_kinematics_lib()
+        lib = _get_spart_lib()
         n   = self._robot.n_links_joints
         _pd = ctypes.POINTER(ctypes.c_double)
 
@@ -1318,7 +1386,56 @@ class SPART:
         lib.emxDestroyArray_real_T(emx_umdot)
 
         return u0dot, umdot
+    
+    # ------------------------------------------------------------------
+    # Space-Robot ODE input generation R0, r0, ... -> y, tau
+    # ------------------------------------------------------------------
+    def space_robot_ode_input(self, t, R0, r0, u0, qm, um, tau0, taum):
+        if not self._ode_input_checked:
+            nq = self._robot.n_q
+            R0_arr  = np.asarray(R0)
+            r0_arr  = np.asarray(r0).flatten()
+            u0_arr  = np.asarray(u0).flatten()
+            qm_arr  = np.asarray(qm).flatten()
+            um_arr  = np.asarray(um).flatten()
+            tau0_arr = np.asarray(tau0).flatten()
+            taum_arr = np.asarray(taum).flatten()
 
+            if R0_arr.shape != (3, 3):
+                raise ValueError(f"R0 must be (3, 3), got {R0_arr.shape}")
+            if r0_arr.shape != (3,):
+                raise ValueError(f"r0 must have 3 elements, got {r0_arr.shape}")
+            if u0_arr.shape != (6,):
+                raise ValueError(f"u0 must have 6 elements [w0(3); r0_dot(3)], got {u0_arr.shape}")
+            if qm_arr.shape != (nq,):
+                raise ValueError(f"qm must have {nq} elements (n_q), got {qm_arr.shape}")
+            if um_arr.shape != (nq,):
+                raise ValueError(f"um must have {nq} elements (n_q), got {um_arr.shape}")
+            if tau0_arr.shape != (6,):
+                raise ValueError(f"tau0 must have 6 elements, got {tau0_arr.shape}")
+            if taum_arr.shape != (nq,):
+                raise ValueError(f"taum must have {nq} elements (n_q), got {taum_arr.shape}")
+
+            self._ode_input_checked = True
+
+        y_ode = np.concatenate([                        # handles both (N,) and (N,1)
+            np.asarray(R0).flatten(order='F'),
+            np.asarray(r0).ravel(), # ravel() makes vectors of (N,) dimension into (N,1) to avoid errors
+            np.asarray(u0).ravel(),
+            np.asarray(qm).ravel(),
+            np.asarray(um).ravel(),
+        ])
+        tau_ode = np.concatenate([np.asarray(tau0).ravel(), np.asarray(taum).ravel()])
+        
+        return t, y_ode, tau_ode
+    
+    # ------------------------------------------------------------------
+    # Space-Robot ODE output generation (dtdy -> R0_dot, r0_dot, ...)
+    # ------------------------------------------------------------------
+    # def space_robot_ode_output(self, yy, tt ):
+        # TODO: unpack output from integration
+        # return RR0, rr0, uu0, qqm, uum
+        
     # ------------------------------------------------------------------
     # Space-Robot ODE
     # ------------------------------------------------------------------
@@ -1347,7 +1464,7 @@ class SPART:
         dydt : (18 + 2*nQ,) array
             Time derivative of the state vector.
         """
-        lib = _get_kinematics_lib()
+        lib = _get_spart_lib()
         n   = self._robot.n_links_joints
         nq  = self._robot.n_q
         _pd = ctypes.POINTER(ctypes.c_double)
@@ -1505,5 +1622,405 @@ class SPART:
         print(f"{'TOTAL (pipeline)':<{col_w}}  {total_all:>10.4f}  {total_all/n_runs*1e6:>12.1f} µs")
         print()
 
+    # ------------------------------------------------------------------
+    # Trajectory animation
+    # ------------------------------------------------------------------
+
+    def animate_trajectory(self, t_arr, y_arr, fps=30, save_path=None,
+                           backend='matplotlib'):
+        """
+        Animate a free-floating space-robot trajectory.
+
+        Parameters
+        ----------
+        t_arr     : (N,) array of time stamps.
+        y_arr     : (N, 18+2*nq) state matrix; each row is one ODE state vector
+                    in the layout produced by ``space_robot_ode_input``::
+
+                        [R0_flat(9,col-major); r0(3); u0(6); qm(nq); qm_dot(nq)]
+
+        fps       : int, playback frame-rate (default 30).
+        save_path : str or None.  If given (e.g. ``'traj.gif'`` or ``'traj.mp4'``)
+                    the animation is saved instead of displayed interactively.
+                    Only supported for ``backend='matplotlib'``.
+                    Requires *ffmpeg* (mp4) or *Pillow* (gif) to be installed.
+        backend   : ``'matplotlib'`` (default), ``'yourdfpy'``, or ``'both'``.
+                    ``'yourdfpy'`` opens a full 3-D mesh viewer via trimesh/pyglet
+                    and requires a URDF path to have been set when the robot was
+                    loaded (i.e. ``SPART(urdf_path)``).  It cannot save to file.
+                    ``'both'`` opens both windows simultaneously: matplotlib runs
+                    in a daemon thread while yourdfpy runs on the main thread.
+
+        Returns
+        -------
+        anim : matplotlib.animation.FuncAnimation  (only for ``backend='matplotlib'``)
+                None for ``backend='yourdfpy'`` or ``backend='both'``.
+        """
+        if backend == 'yourdfpy':
+            return self._animate_trajectory_yourdfpy(t_arr, y_arr, fps)
+        elif backend == 'both':
+            return self._animate_trajectory_both(t_arr, y_arr, fps)
+        elif backend != 'matplotlib':
+            raise ValueError(
+                f"Unknown backend '{backend}'. "
+                "Choose 'matplotlib', 'yourdfpy', or 'both'.")
+        import matplotlib.pyplot as plt
+
+        fig, anim = self._build_matplotlib_animation(t_arr, y_arr, fps)
+
+        if save_path is not None:
+            ext = os.path.splitext(save_path)[-1].lower()
+            writer = 'ffmpeg' if ext == '.mp4' else 'pillow'
+            anim.save(save_path, writer=writer, fps=fps)
+            print(f"[animate_trajectory] Saved to {save_path}")
+        else:
+            plt.tight_layout()
+            plt.show()
+
+        return anim
+
+    def _build_matplotlib_animation(self, t_arr, y_arr, fps=30):
+        """
+        Build (but do not show) the matplotlib FuncAnimation.
+
+        Returns
+        -------
+        fig  : matplotlib Figure
+        anim : FuncAnimation
+        """
+        import matplotlib.animation as animation
+
+        fig, draw_frame = self._setup_matplotlib_artists(t_arr, y_arr)
+        N = len(np.asarray(t_arr).ravel())
+        interval_ms = int(1000 / fps)
+        anim = animation.FuncAnimation(
+            fig, draw_frame, frames=N, interval=interval_ms, blit=False)
+        return fig, anim
+
+    def _setup_matplotlib_artists(self, t_arr, y_arr):
+        """
+        Build the matplotlib figure and all artists for the trajectory.
+        Returns ``(fig, draw_frame)`` where ``draw_frame(k)`` updates all
+        artists to frame *k* and returns them (suitable for FuncAnimation
+        OR for calling directly from any event loop).
+        """
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+        nq      = self._robot.n_q
+        n       = self._robot.n_links_joints
+        t_arr   = np.asarray(t_arr).ravel()
+        y_arr   = np.asarray(y_arr)
+        N       = len(t_arr)
+
+        # --- box half-extents for the spacecraft body ---
+        half = None
+        if self._urdf_path is not None:
+            half = _parse_base_box_halfextents(self._urdf_path)
+        if half is None:
+            half = np.array([1.0, 1.0, 1.0])   # fallback unit box
+
+        # --- pre-compute link/joint positions for every frame ---
+        rJ_all = np.empty((N, 3, n))
+        rL_all = np.empty((N, 3, n))
+        r0_all = np.empty((N, 3))
+
+        for k in range(N):
+            y           = y_arr[k]
+            R0_I2body_k = y[0:9].reshape(3, 3, order='F')
+            R0_k        = R0_I2body_k.T   # R0_body2I — what kinematics() expects
+            r0_k        = y[9:12]
+            qm_k        = y[18:18 + nq]
+            _, RL_k, rJ_k, rL_k, e_k, g_k = self.kinematics(R0_k, r0_k, qm_k)
+            rJ_all[k] = rJ_k
+            rL_all[k] = rL_k
+            r0_all[k] = r0_k
+
+        # --- axis limits: pad around entire trajectory incl. box corners ---
+        box_extent = np.linalg.norm(half)
+        all_pts = np.concatenate(
+            [r0_all, rJ_all.reshape(-1, 3), rL_all.reshape(-1, 3)], axis=0)
+        margin = 0.5 + box_extent
+        lims = [(all_pts[:, i].min() - margin, all_pts[:, i].max() + margin)
+                for i in range(3)]
+
+        # --- build figure ---
+        fig = plt.figure(figsize=(9, 7))
+        ax  = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('X [m]'); ax.set_ylabel('Y [m]'); ax.set_zlabel('Z [m]')
+        ax.set_xlim(*lims[0]); ax.set_ylim(*lims[1]); ax.set_zlim(*lims[2])
+        title = ax.set_title('')
+
+        # spacecraft body: wireframe box (Line3DCollection, updated each frame)
+        box_coll = Line3DCollection(
+            _box_segments(half, np.eye(3), np.zeros(3)),
+            colors='dimgrey', linewidths=1.2, alpha=0.7, label='spacecraft body')
+        ax.add_collection3d(box_coll)
+
+        # orientation arrows: unit-length from r0 along each principal axis
+        quiv_scale = float(np.max(half) * 0.6)
+        qax = [ax.quiver(0, 0, 0, 1, 0, 0, color=c,
+                         length=quiv_scale, normalize=True)
+               for c in ('r', 'g', 'b')]
+
+        # arm skeleton: r0 → joint chain, plus link CoM markers
+        skeleton, = ax.plot([], [], [], 'o-', color='steelblue',
+                            linewidth=2, markersize=5, label='joints')
+        com_pts,  = ax.plot([], [], [], 's', color='orange',
+                            markersize=6, label='link CoM')
+
+        ax.legend(loc='upper left', fontsize=8)
+
+        def draw_frame(k):
+            r0 = r0_all[k]
+            R0 = y_arr[k, 0:9].reshape(3, 3, order='F').T  # R0_body2I
+            rJ = rJ_all[k]
+            rL = rL_all[k]
+
+            box_coll.set_segments(_box_segments(half, R0, r0))
+
+            for q in qax:
+                q.remove()
+            qax[0] = ax.quiver(*r0, *R0[:, 0], color='r',
+                               length=quiv_scale, normalize=True)
+            qax[1] = ax.quiver(*r0, *R0[:, 1], color='g',
+                               length=quiv_scale, normalize=True)
+            qax[2] = ax.quiver(*r0, *R0[:, 2], color='b',
+                               length=quiv_scale, normalize=True)
+
+            xs = np.concatenate([[r0[0]], rJ[0]])
+            ys = np.concatenate([[r0[1]], rJ[1]])
+            zs = np.concatenate([[r0[2]], rJ[2]])
+            skeleton.set_data_3d(xs, ys, zs)
+
+            com_pts.set_data_3d(rL[0], rL[1], rL[2])
+
+            title.set_text(f't = {t_arr[k]:.3f} s')
+            return box_coll, skeleton, com_pts, title
+
+        return fig, draw_frame
+
+    def _animate_trajectory_both(self, t_arr, y_arr, fps=30):
+        """
+        Open both the matplotlib and yourdfpy viewers side-by-side.
+
+        Both are driven from the yourdfpy (pyglet) callback on the main thread.
+        The yourdfpy callback fires every frame; inside it we also call the
+        matplotlib draw function and flush its canvas — no threading needed.
+        """
+        import matplotlib.pyplot as plt
+        import time
+
+        # Build matplotlib artists (no FuncAnimation, no show yet)
+        fig, draw_frame = self._setup_matplotlib_artists(t_arr, y_arr)
+        plt.tight_layout()
+        plt.show(block=False)
+        plt.pause(0.1)   # let the window appear before pyglet initialises
+
+        # --- yourdfpy setup (duplicates _animate_trajectory_yourdfpy logic
+        #     so we can intercept the callback) ---
+        if self._urdf_path is None:
+            raise RuntimeError(
+                "_urdf_path is not set. Load the robot from a URDF file "
+                "to use backend='both'.")
+        try:
+            from yourdfpy import URDF as _URDF
+        except ImportError:
+            raise ImportError("yourdfpy is required for backend='both'. "
+                              "Install it with: pip install yourdfpy")
+
+        nq    = self._robot.n_q
+        t_arr = np.asarray(t_arr).ravel()
+        y_arr = np.asarray(y_arr)
+        N     = len(t_arr)
+        T_sim = float(t_arr[-1] - t_arr[0])
+
+        yd_robot  = _URDF.load(self._urdf_path)
+        scene     = yd_robot._scene
+        base_link = yd_robot.base_link
+        scene.graph.update(frame_from='world', frame_to=base_link, matrix=np.eye(4))
+        scene.graph.base_frame = 'world'
+
+        # Add an RGB axis indicator sized to the spacecraft body
+        import trimesh as _trimesh
+        _half = _parse_base_box_halfextents(self._urdf_path)
+        if _half is None:
+            _half = np.array([1.0, 1.0, 1.0])
+        _axis_len = float(np.max(_half) * 0.8)
+        _axis_geom = _trimesh.creation.axis(
+            origin_size=_axis_len * 0.05,
+            axis_radius=_axis_len * 0.025,
+            axis_length=_axis_len,
+        )
+        scene.add_geometry(
+            _axis_geom,
+            geom_name='_base_axes',
+            node_name='_base_axes_node',
+            parent_node_name='world',
+            transform=np.eye(4),
+        )
+
+        def _T_base(y):
+            R0_body2I = y[0:9].reshape(3, 3, order='F').T  # state stores R0_I2body
+            r0 = y[9:12]
+            T  = np.eye(4); T[:3, :3] = R0_body2I; T[:3, 3] = r0
+            return T
+
+        state = {'start_wall': None, 'last_frame': -1}
+
+        def _callback(scene):
+            if state['start_wall'] is None:
+                state['start_wall'] = time.perf_counter()
+
+            elapsed = time.perf_counter() - state['start_wall']
+            sim_t   = t_arr[0] + (elapsed % T_sim)
+            k = int(np.searchsorted(t_arr, sim_t, side='left'))
+            k = min(k, N - 1)
+
+            if k == state['last_frame']:
+                return
+            state['last_frame'] = k
+
+            y = y_arr[k]
+            T = _T_base(y)
+
+            # --- update yourdfpy scene ---
+            scene.graph.update(frame_from='world', frame_to=base_link, matrix=T)
+            scene.graph.update(frame_from='world', frame_to='_base_axes_node', matrix=T)
+            yd_robot.update_cfg(y[18:18 + nq])
+
+            # --- update matplotlib (same frame index, same wall-clock driven k) ---
+            if plt.fignum_exists(fig.number):
+                draw_frame(k)
+                fig.canvas.draw_idle()
+                fig.canvas.flush_events()
+
+        print(f"[both] Opening viewers — {N} frames, {T_sim:.2f} s  "
+              f"(close the yourdfpy window to quit)")
+        # Set camera to match matplotlib's default view: elev=30°, azim=-60°
+        _el, _az = np.radians(30), np.radians(-60)
+        _z  = np.array([np.cos(_el)*np.cos(_az), np.cos(_el)*np.sin(_az), np.sin(_el)])
+        _up = np.array([0., 0., 1.])
+        _x  = np.cross(_up, _z);  _x /= np.linalg.norm(_x)
+        _R4 = np.eye(4)
+        _R4[:3, 0] = _x
+        _R4[:3, 1] = np.cross(_z, _x)
+        _R4[:3, 2] = _z
+        scene.camera_transform = scene.camera.look_at(scene.bounds, rotation=_R4)
+        yd_robot.show(callback=_callback)
+        return None
+
+    def _animate_trajectory_yourdfpy(self, t_arr, y_arr, fps=30):
+        """
+        Animate a trajectory using the yourdfpy / trimesh 3-D mesh viewer.
+
+        The trimesh SceneViewer calls ``callback(scene)`` each rendered frame;
+        the callback advances a frame counter driven by wall-clock time so
+        playback runs at approximately ``fps`` regardless of render cost.
+        """
+        if self._urdf_path is None:
+            raise RuntimeError(
+                "_urdf_path is not set. Load the robot from a URDF file "
+                "(e.g. SPART('path/to/robot.urdf')) to use the yourdfpy backend."
+            )
+
+        try:
+            from yourdfpy import URDF as _URDF
+        except ImportError:
+            raise ImportError("yourdfpy is required for backend='yourdfpy'. "
+                              "Install it with: pip install yourdfpy")
+
+        import time
+
+        nq    = self._robot.n_q
+        t_arr = np.asarray(t_arr).ravel()
+        y_arr = np.asarray(y_arr)
+        N     = len(t_arr)
+        T_sim = float(t_arr[-1] - t_arr[0])
+
+        # Load a fresh yourdfpy URDF (its scene graph is kept separate from SPART)
+        yd_robot = _URDF.load(self._urdf_path)
+        scene    = yd_robot._scene
+
+        # Insert a fixed 'world' frame above Chaser_Base so we can translate it
+        base_link = yd_robot.base_link
+        scene.graph.update(frame_from='world', frame_to=base_link, matrix=np.eye(4))
+        scene.graph.base_frame = 'world'
+
+        # Add an RGB axis indicator sized to the spacecraft body
+        import trimesh as _trimesh
+        half = _parse_base_box_halfextents(self._urdf_path)
+        if half is None:
+            half = np.array([1.0, 1.0, 1.0])
+        _axis_len = float(np.max(half) * 0.8)
+        _axis_geom = _trimesh.creation.axis(
+            origin_size=_axis_len * 0.05,
+            axis_radius=_axis_len * 0.025,
+            axis_length=_axis_len,
+        )
+        scene.add_geometry(
+            _axis_geom,
+            geom_name='_base_axes',
+            node_name='_base_axes_node',
+            parent_node_name='world',
+            transform=np.eye(4),
+        )
+
+        # Build the initial base transform from frame 0
+        def _T_base(y):
+            R0_body2I = y[0:9].reshape(3, 3, order='F').T  # state stores R0_I2body
+            r0 = y[9:12]
+            T  = np.eye(4)
+            T[:3, :3] = R0_body2I
+            T[:3,  3] = r0
+            return T
+
+        # Mutable state shared with the closure
+        state = {'start_wall': None, 'last_frame': -1}
+
+        def _callback(scene):
+            # Initialise wall-clock on first call
+            if state['start_wall'] is None:
+                state['start_wall'] = time.perf_counter()
+
+            # Map elapsed wall time → simulation time (looping)
+            elapsed = time.perf_counter() - state['start_wall']
+            sim_t   = t_arr[0] + (elapsed % T_sim)
+            # Find nearest frame index
+            k = int(np.searchsorted(t_arr, sim_t, side='left'))
+            k = min(k, N - 1)
+
+            if k == state['last_frame']:
+                return   # nothing changed
+            state['last_frame'] = k
+
+            y = y_arr[k]
+            T = _T_base(y)
+
+            # Update floating base pose
+            scene.graph.update(frame_from='world', frame_to=base_link, matrix=T)
+
+            # Update axis indicator to match base pose
+            scene.graph.update(frame_from='world', frame_to='_base_axes_node', matrix=T)
+
+            # Update joint angles
+            qm_k = y[18:18 + nq]
+            yd_robot.update_cfg(qm_k)
+
+        print(f"[yourdfpy] Opening viewer — {N} frames, {T_sim:.2f} s  "
+              f"(press Q to close)")
+        # Set camera to match matplotlib's default view: elev=30°, azim=-60°
+        # z_cam = direction from scene centre to camera in world space
+        _el, _az = np.radians(30), np.radians(-60)
+        _z  = np.array([np.cos(_el)*np.cos(_az), np.cos(_el)*np.sin(_az), np.sin(_el)])
+        _up = np.array([0., 0., 1.])
+        _x  = np.cross(_up, _z);  _x /= np.linalg.norm(_x)
+        _R4 = np.eye(4)
+        _R4[:3, 0] = _x
+        _R4[:3, 1] = np.cross(_z, _x)
+        _R4[:3, 2] = _z
+        scene.camera_transform = scene.camera.look_at(scene.bounds, rotation=_R4)
+        yd_robot.show(callback=_callback)
+        return None
     def __repr__(self):
         return f"SPART(robot={self._robot!r})"

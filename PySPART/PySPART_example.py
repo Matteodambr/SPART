@@ -98,12 +98,56 @@ print(f'umdot  ({nq},):')   ; print(umdot_out)
 # ---------------------------------------------------------------------------
 _sep('SPART_SPACEROBOT_ODE_C')
 # Build state vector: y = [R0_flat(9,col-major); r0(3); u0(6); qm(nq); um(nq)]
-R0_flat = R0.flatten(order='F')
-y_ode   = np.concatenate([R0_flat, r0, u0, qm, um])
-tau_ode = np.concatenate([[1, 2, 3, 4, 5, 6], np.ones(nq)])
-dydt    = spart.space_robot_ode(0.0, y_ode, tau_ode)
-print(f'y     ({len(y_ode)},): {y_ode}')
+tau0 = np.array([1,2,3,4,5,6]).reshape((-1, 1))
+taum = np.ones((nq, 1))
+t = 0.0
+dydt    = spart.space_robot_ode(*spart.space_robot_ode_input(t, R0, r0, u0, qm, um, tau0, taum)) # NOTE: The * operator automatically unpacks the outputs of the space_robot_ode_input function into separate variables. If a single tuple were called, an error would be given.
 print(f'dydt  ({len(dydt)},): {dydt}')
 
 # Benchmark
 spart.benchmark(n_runs=5000)
+
+# ---------------------------------------------------------------------------
+# Trajectory integration — constant torque on first 3 joints for 20 s
+# ---------------------------------------------------------------------------
+_sep('Trajectory Integration')
+from scipy.integrate import solve_ivp
+
+# Start from rest at the same configuration
+u0_traj = np.zeros(6)          # no initial base velocity
+um_traj = np.zeros(nq)         # no initial joint velocity
+
+tau0_traj = np.array([[10],[0],[0],[0],[0],[0]])          # free-flying base
+taum_traj = np.array([2, 1, 0.5, 0., 0., 0., 0.])     # 0.01 Nm on joints 1-3
+
+_, y0_traj, tau_ode = spart.space_robot_ode_input(
+    0.0, R0, r0, u0_traj, qm, um_traj, tau0_traj, taum_traj)
+
+T_end   = 20.0
+max_dt  = 0.05   # 20 Hz output resolution
+
+print(f"Integrating for {T_end} s  (tau_manip = {taum_traj}) ...")
+sol = solve_ivp(
+    fun      = lambda t, y: spart.space_robot_ode(t, y, tau_ode),
+    t_span   = (0.0, T_end),
+    y0       = y0_traj,
+    method   = 'RK45',
+    max_step = max_dt,
+    dense_output=False,
+)
+print(f"  Done — {sol.t.size} steps, status: {sol.message}")
+
+# ---------------------------------------------------------------------------
+# Visualize trajectory
+# ---------------------------------------------------------------------------
+_sep('Trajectory Visualisation')
+
+# yourdfpy backend  — full 3-D mesh viewer (requires URDF loaded from file)
+# spart.animate_trajectory(sol.t, sol.y.T, fps=30, backend='yourdfpy')
+
+# matplotlib backend — lightweight 3-D stick figure; also supports save_path
+# spart.animate_trajectory(sol.t, sol.y.T, fps=30, backend='matplotlib')
+# spart.animate_trajectory(sol.t, sol.y.T, fps=30, save_path='traj.gif')
+
+# both side-by-side — matplotlib in daemon thread, yourdfpy on main thread
+spart.animate_trajectory(sol.t, sol.y.T, fps=30, backend='both')
