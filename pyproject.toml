@@ -4,19 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spartpy"
-version = "1.1.0"
+version = "1.1.2"
 description = "Python port of SPART: dynamics and control toolkit for free-flyer space robots"
 readme = "SPARTpy/README.md"
-license = { text = "BSD-3-Clause" }
+license = { file = "LICENSE.md" }
 requires-python = ">=3.8"
 dependencies = [
     "numpy",
 ]
-keywords = ["robotics", "space robots", "dynamics", "kinematics", "free-flyer"]
+keywords = ["multi body systems", "space robotics", "dynamics", "kinematics", "free-flying system"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",

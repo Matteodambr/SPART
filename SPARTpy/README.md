@@ -82,7 +82,7 @@ SPARTpy (and SPART) use **two rotation matrices** with clearly distinct roles.  
 
 > Maps a vector expressed in the **body frame** into the **inertial frame**:
 >
-> $$V_I = R_{body2I} \, V_B$$
+> V<sub>I</sub> = R<sub>body2I</sub> · V<sub>B</sub>
 
 This is the matrix accepted by all kinematics and dynamics functions:
 
@@ -98,7 +98,7 @@ It is the standard DCM used in SPART: the columns of `R0_body2I` are the body-fr
 
 > Maps a vector expressed in the **inertial frame** into the **body frame**:
 >
-> $$V_B = R_{I2body} \, V_I$$
+> V<sub>B</sub> = R<sub>I2body</sub> · V<sub>I</sub>
 
 This is the matrix stored inside the **ODE state vector** `y`, and the one accepted by `space_robot_ode_input`:
 
@@ -114,7 +114,7 @@ R0_I2body = R0_body2I.T
 
 The ODE integrates the DCM kinematic equation
 
-$$\dot{R}_{I2body} = -[\omega_B]_\times \, R_{I2body}$$
+Ṙ<sub>I2body</sub> = −[ω<sub>B</sub>]<sub>×</sub> R<sub>I2body</sub>
 
 which keeps the state matrix as the inertial-to-body form.  Internally, `space_robot_ode` transposes it before calling kinematics:
 
@@ -126,8 +126,8 @@ R0_body2I = R0_I2body.T   # done internally — callers supply R0_I2body
 
 | Variable | Direction | Semantics | Used in |
 |---|---|---|---|
-| `R0_body2I` | B → I | $V_I = R \, V_B$ | `kinematics`, `diff_kinematics`, `i_i` |
-| `R0_I2body` | I → B | $V_B = R \, V_I$ | ODE state `y`, `space_robot_ode_input` |
+| `R0_body2I` | B → I | V<sub>I</sub> = R · V<sub>B</sub> | `kinematics`, `diff_kinematics`, `i_i` |
+| `R0_I2body` | I → B | V<sub>B</sub> = R · V<sub>I</sub> | ODE state `y`, `space_robot_ode_input` |
 
 ## Quick Start
 
@@ -211,4 +211,4 @@ spart.animate_trajectory(sol.t, sol.y.T, fps=30, backend='matplotlib')
 
 ## License
 
-BSD 3-Clause.  See [LICENSE.md](../LICENSE.md).
+GNU Lesser General Public License v3 (LGPLv3).  See [LICENSE.md](../LICENSE.md).
