@@ -1,10 +1,13 @@
-function [Bij,Bi0,P0,pm]=DiffKinematics(R0,r0,rL,e,g,robot)
+function [Bij,Bi0,P0,pm]=DiffKinematics(R0_body2I,r0,rL,e,g,robot)
 % Computes the differential kinematics of the multibody system.
 %
-% [Bij,Bi0,P0,pm]=DiffKinematics(R0,r0,rL,e,g,robot)
+% [Bij,Bi0,P0,pm]=DiffKinematics(R0_body2I,r0,rL,e,g,robot)
 % 
 % :parameters:
-%   * R0 -- Rotation matrix from the base-link CCS to the inertial CCS -- [3x3].
+%   * R0_body2I -- Active rotation from the base-link body CCS to the inertial CCS [3x3].
+%                  V_I = R0_body2I * V_B  (maps body-frame vectors to the inertial frame).
+%                  NOTE: This is the BODY->INERTIAL active rotation, i.e. the transpose of
+%                  the inertial->body rotation stored in the ODE state vector.
 %   * r0 -- Position of the base-link center-of-mass with respect to the origin of the inertial frame, projected in the inertial CCS -- [3x1].
 %   * rL -- Positions of the links, projected in the inertial CCS -- as a [3xn] matrix.
 %   * e -- Joint rotation/sliding axes, projected in the inertial CCS -- as a [3xn] matrix.
@@ -46,7 +49,7 @@ n=robot.n_links_joints;
 %--- Twist-propagation matrix ---%
 
 %Pre-allocate Bij
-Bij=zeros(6,6,n,n,'like',R0);
+Bij=zeros(6,6,n,n,'like',R0_body2I);
 
 %Compute Bij
 for j=1:n
@@ -62,7 +65,7 @@ for j=1:n
 end
 
 %Pre-allocate Bi0
-Bi0=zeros(6,6,n,'like',R0);
+Bi0=zeros(6,6,n,'like',R0_body2I);
 
 %Compute Bi0
 for i=1:n
@@ -72,10 +75,12 @@ end
 %--- Twist-propagation "vector" ---%
 
 %Pre-allocate pm
-pm=zeros(6,n,'like',R0);
+pm=zeros(6,n,'like',R0_body2I);
 
-%Base-link
-P0=[R0,zeros(3,3); zeros(3,3), eye(3)];
+%Base-link twist-propagation matrix
+% P0 maps [omega_body; r0_dot_inertial] to the inertial-frame twist.
+% The top-left block R0_body2I rotates the body-frame angular velocity to the inertial frame.
+P0=[R0_body2I,zeros(3,3); zeros(3,3), eye(3)];
 
 %Forward recursion to obtain the twist-propagation "vector"
 for i=1:n

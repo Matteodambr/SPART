@@ -1,7 +1,12 @@
-function [RJ, RL, rJ, rL, e, g] = Kinematics_casadi(R0, r0, qm, robot)
+function [RJ, RL, rJ, rL, e, g] = Kinematics_casadi(R0_body2I, r0, qm, robot)
+% Computes the forward kinematics of the multibody system (CasADi-compatible).
+%
+% :parameters:
+%   * R0_body2I -- Active rotation from the base-link body CCS to the inertial CCS [3x3].
+%                  V_I = R0_body2I * V_B  (maps body-frame vectors to the inertial frame).
 
 % Determine if inputs are symbolic (casadi) or numeric
-is_symbolic = isa(R0, 'casadi.SX') || isa(R0, 'casadi.MX') || isa(r0, 'casadi.SX') || isa(r0, 'casadi.MX') || ...
+is_symbolic = isa(R0_body2I, 'casadi.SX') || isa(R0_body2I, 'casadi.MX') || isa(r0, 'casadi.SX') || isa(r0, 'casadi.MX') || ...
     isa(qm, 'casadi.SX') || isa(qm, 'casadi.MX');
 
 if is_symbolic
@@ -28,7 +33,7 @@ rL = zeros3n(3, n);
 e  = zeros3n(3, n);
 g  = zeros3n(3, n);
 
-T0 = [R0, r0; zeros1n(1, 3), sx1()];
+T0 = [R0_body2I, r0; zeros1n(1, 3), sx1()];
 
 for i = 1:n
     cjoint = robot.joints(i);

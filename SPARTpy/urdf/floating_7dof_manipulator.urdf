@@ -23,12 +23,25 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="1579.20"/>
-      <inertia ixx="700" ixy="0" ixz="0" iyy="1577.74" iyz="0" izz="1665.94"/>
+      <inertia ixx="699.98" ixy="0" ixz="0" iyy="1621.45" iyz="0" izz="1621.45"/>
     </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="3.1083 1.6308 1.6308"/>
+      </geometry>
+      <material name="Grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="3.1083 1.6308 1.6308"/>
+      </geometry>
+    </collision>
   </link>
 
   <!-- Joint 1 -->
-  <joint name="Joint_1" type="continuous">
+  <joint name="Joint_1" type="revolute">
     <parent link="Chaser_Base"/>
     <child link="Link_1"/>
     <origin rpy="3.1416 -1.570796 0" xyz="1.5 0 0"/>
@@ -42,7 +55,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0.042 0.128"/>
       <mass value="10"/>
-      <inertia ixx="0.0745" ixy="0" ixz="0" iyy="0.0745" iyz="0" izz="0.0397"/>
+      <inertia ixx="0.0645" ixy="0" ixz="0" iyy="0.0645" iyz="0" izz="0.0198"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0.128"/>
@@ -67,7 +80,7 @@
   </link>
 
   <!-- Joint 2 -->
-  <joint name="Joint_2" type="continuous">
+  <joint name="Joint_2" type="revolute">
     <parent link="Link_1"/>
     <child link="Link_2"/>
     <origin rpy="-1.570796 0 0" xyz="0 0.084 0.256"/>
@@ -79,7 +92,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 -0.887 0.042"/>
       <mass value="17"/>
-      <inertia ixx="4.4921" ixy="0" ixz="0" iyy="0.0675" iyz="0" izz="4.4921"/>
+      <inertia ixx="4.4752" ixy="0" ixz="0" iyy="0.0337" iyz="0" izz="4.4752"/>
     </inertial>
     <visual>
       <origin rpy="1.570796 0 0" xyz="0 -0.887 0.084"/>
@@ -117,7 +130,7 @@
   </link>
 
   <!-- Joint 3 -->
-  <joint name="Joint_3" type="continuous">
+  <joint name="Joint_3" type="revolute">
     <parent link="Link_2"/>
     <child link="Link_3"/>
     <origin rpy="1.5708 3.1416 0" xyz="0 -1.774 0.084"/>
@@ -129,7 +142,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0.042 0.063"/>
       <mass value="10"/>
-      <inertia ixx="0.0331" ixy="0" ixz="0" iyy="0.0331" iyz="0" izz="0.0397"/>
+      <inertia ixx="0.0232" ixy="0" ixz="0" iyy="0.0232" iyz="0" izz="0.0198"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0.063"/>
@@ -154,7 +167,7 @@
   </link>
 
   <!-- Joint 4 -->
-  <joint name="Joint_4" type="continuous">
+  <joint name="Joint_4" type="revolute">
     <parent link="Link_3"/>
     <child link="Link_4"/>
     <origin rpy="-1.5708 0 0" xyz="0 0.084 0.126"/>
@@ -166,7 +179,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 -0.802 0.042"/>
       <mass value="16"/>
-      <inertia ixx="3.4622" ixy="0" ixz="0" iyy="0.0635" iyz="0" izz="3.4622"/>
+      <inertia ixx="3.4463" ixy="0" ixz="0" iyy="0.0318" iyz="0" izz="3.4463"/>
     </inertial>
     <visual>
       <origin rpy="1.5708 0 0" xyz="0 -0.802 0.084"/>
@@ -204,7 +217,7 @@
   </link>
 
   <!-- Joint 5 -->
-  <joint name="Joint_5" type="continuous">
+  <joint name="Joint_5" type="revolute">
     <parent link="Link_4"/>
     <child link="Link_5"/>
     <origin rpy="1.5708 3.1416 0" xyz="0 -1.604 0.084"/>
@@ -216,7 +229,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 -0.042 0.063"/>
       <mass value="10"/>
-      <inertia ixx="0.0331" ixy="0" ixz="0" iyy="0.0331" iyz="0" izz="0.0397"/>
+      <inertia ixx="0.0232" ixy="0" ixz="0" iyy="0.0232" iyz="0" izz="0.0198"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0.063"/>
@@ -241,7 +254,7 @@
   </link>
 
   <!-- Joint 6 -->
-  <joint name="Joint_6" type="continuous">
+  <joint name="Joint_6" type="revolute">
     <parent link="Link_5"/>
     <child link="Link_6"/>
     <origin rpy="1.5708 0 0" xyz="0 -0.084 0.126"/>
@@ -253,7 +266,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0.063 0.042"/>
       <mass value="10"/>
-      <inertia ixx="0.0331" ixy="0" ixz="0" iyy="0.0397" iyz="0" izz="0.0331"/>
+      <inertia ixx="0.0232" ixy="0" ixz="0" iyy="0.0198" iyz="0" izz="0.0232"/>
     </inertial>
     <visual>
       <origin rpy="-1.5708 0 0" xyz="0 0.063 0.084"/>
@@ -291,7 +304,7 @@
   </link>
 
 <!-- Joint 7 -->
-  <joint name="Joint_7" type="continuous">
+  <joint name="Joint_7" type="revolute">
     <parent link="Link_6"/>
     <child link="Link_7"/>
     <origin rpy="-1.5708 0 0" xyz="0 0.126 0.084"/>
@@ -303,7 +316,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0.24275"/>
       <mass value="7"/>
-      <inertia ixx="0.0643" ixy="0" ixz="0" iyy="0.0643" iyz="0" izz="0.0278"/>
+      <inertia ixx="0.0574" ixy="0" ixz="0" iyy="0.0574" iyz="0" izz="0.0139"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0.147"/>
@@ -341,7 +354,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <mass value="2"/>
-      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+      <inertia ixx="0.0032" ixy="0" ixz="0" iyy="0.0032" iyz="0" izz="0.0032"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>

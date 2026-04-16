@@ -1,0 +1,2457 @@
+import numpy as np
+import ctypes
+import os
+
+# ---------------------------------------------------------------------------
+# MATLAB engine (lazy-started on first use, import deferred so the module
+# can be loaded without a MATLAB installation)
+# ---------------------------------------------------------------------------
+_engine = None
+
+def _get_engine():
+    """Return the shared MATLAB engine, starting it if necessary."""
+    global _engine
+    if _engine is None:
+        try:
+            import matlab.engine as _matlab_engine  # noqa: PLC0415
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "matlab.engine is not installed.  The MATLAB engine is only "
+                "needed for _load_robot_matlab() (cross-validation).  "
+                "Use load_robot() instead, which is pure Python."
+            ) from exc
+        _engine = _matlab_engine.start_matlab()
+        # Add the SPART source tree to the MATLAB path
+        spart_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _engine.addpath(_engine.genpath(spart_root), nargout=0)
+    return _engine
+
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
+
+class JointData:
+    """Mirrors struct0_T from SPART_C_types.h"""
+    __slots__ = ('id', 'type', 'q_id', 'parent_link', 'child_link', 'axis', 'T')
+
+    def __init__(self, id, type, q_id, parent_link, child_link, axis, T):
+        self.id          = float(id)
+        self.type        = float(type)
+        self.q_id        = float(q_id)
+        self.parent_link = float(parent_link)
+        self.child_link  = float(child_link)
+        self.axis        = np.asarray(axis, dtype=np.float64).flatten()   # (3,)
+        self.T           = np.asarray(T,    dtype=np.float64, order='F')  # (4,4) col-major
+
+    def __repr__(self):
+        return (f"JointData(id={self.id}, type={self.type}, q_id={self.q_id}, "
+                f"parent_link={self.parent_link}, child_link={self.child_link})")
+
+
+class LinkData:
+    """Mirrors struct1_T from SPART_C_types.h"""
+    __slots__ = ('id', 'parent_joint', 'T', 'mass', 'inertia')
+
+    def __init__(self, id, parent_joint, T, mass, inertia):
+        self.id           = float(id)
+        self.parent_joint = float(parent_joint)
+        self.T            = np.asarray(T,       dtype=np.float64, order='F')  # (4,4)
+        self.mass         = float(mass)
+        self.inertia      = np.asarray(inertia, dtype=np.float64, order='F')  # (3,3)
+
+    def __repr__(self):
+        return (f"LinkData(id={self.id}, parent_joint={self.parent_joint}, "
+                f"mass={self.mass})")
+
+
+class RobotModel:
+    """Python equivalent of the SPART robot structure."""
+    __slots__ = ('name', 'n_q', 'n_links_joints', 'joints', 'links',
+                 'con_branch', 'con_child', 'con_child_base',
+                 'base_link_mass', 'base_link_inertia')
+
+    def __init__(self, name, n_q, n_links_joints, joints, links,
+                 con_branch, con_child, con_child_base,
+                 base_link_mass, base_link_inertia):
+        self.name               = name
+        self.n_q                = int(n_q)
+        self.n_links_joints     = int(n_links_joints)
+        self.joints             = joints    # list of JointData
+        self.links              = links     # list of LinkData
+        self.con_branch         = np.asarray(con_branch,     dtype=np.float64)  # (n, n)
+        self.con_child          = np.asarray(con_child,      dtype=np.float64)  # (n, n)
+        self.con_child_base     = np.asarray(con_child_base, dtype=np.float64).flatten()  # (n,)
+        self.base_link_mass     = float(base_link_mass)
+        self.base_link_inertia  = np.asarray(base_link_inertia, dtype=np.float64, order='F').reshape(3, 3, order='F')
+
+    def __repr__(self):
+        return (f"RobotModel(name='{self.name}', n_q={self.n_q}, "
+                f"n_links_joints={self.n_links_joints})")
+
+
+# ---------------------------------------------------------------------------
+# ctypes layout for SPART_C.so
+# ---------------------------------------------------------------------------
+
+class _CJoint(ctypes.Structure):         # struct0_T
+    _fields_ = [
+        ('id',          ctypes.c_double),
+        ('type',        ctypes.c_double),
+        ('q_id',        ctypes.c_double),
+        ('parent_link', ctypes.c_double),
+        ('child_link',  ctypes.c_double),
+        ('axis',        ctypes.c_double * 3),
+        ('T',           ctypes.c_double * 16),   # 4x4 col-major
+    ]
+
+class _CLink(ctypes.Structure):          # struct1_T
+    _fields_ = [
+        ('id',           ctypes.c_double),
+        ('parent_joint', ctypes.c_double),
+        ('T',            ctypes.c_double * 16),  # 4x4 col-major
+        ('mass',         ctypes.c_double),
+        ('inertia',      ctypes.c_double * 9),   # 3x3 col-major
+    ]
+
+class _CCellWrap1(ctypes.Structure):     # cell_wrap_1  — 6×6 matrix (f1[36] col-major)
+    _fields_ = [('f1', ctypes.c_double * 36)]
+
+class _CCellWrap2(ctypes.Structure):     # cell_wrap_2  — 3×3 matrix (f1[9] col-major)
+    _fields_ = [('f1', ctypes.c_double * 9)]
+
+class _CBaseLink(ctypes.Structure):      # struct2_T
+    _fields_ = [
+        ('mass',    ctypes.c_double),
+        ('inertia', ctypes.c_double * 9),   # 3×3 col-major
+    ]
+
+class _EmxReal(ctypes.Structure):        # emxArray_real_T
+    _fields_ = [
+        ('data',          ctypes.POINTER(ctypes.c_double)),
+        ('size',          ctypes.POINTER(ctypes.c_int32)),
+        ('allocatedSize', ctypes.c_int32),
+        ('numDimensions', ctypes.c_int32),
+        ('canFreeData',   ctypes.c_uint8),
+    ]
+
+class _EmxCellWrap1(ctypes.Structure):   # emxArray_cell_wrap_1
+    _fields_ = [
+        ('data',          ctypes.POINTER(_CCellWrap1)),
+        ('size',          ctypes.POINTER(ctypes.c_int32)),
+        ('allocatedSize', ctypes.c_int32),
+        ('numDimensions', ctypes.c_int32),
+        ('canFreeData',   ctypes.c_uint8),
+    ]
+
+class _EmxCellWrap2(ctypes.Structure):   # emxArray_cell_wrap_2
+    _fields_ = [
+        ('data',          ctypes.POINTER(_CCellWrap2)),
+        ('size',          ctypes.POINTER(ctypes.c_int32)),
+        ('allocatedSize', ctypes.c_int32),
+        ('numDimensions', ctypes.c_int32),
+        ('canFreeData',   ctypes.c_uint8),
+    ]
+
+# ---------------------------------------------------------------------------
+# Locate the SPART_C shared library root.
+#
+# Two possible layouts are supported:
+#
+#  1. Pip-installed wheel / editable install
+#        SPARTpy/_c_src/SPART_C/SPART_C.so
+#        (C sources copied there by setup.py's build_py hook)
+#
+#  2. Running directly from the SPART source tree (development)
+#        codegen/dll/SPART_C/SPART_C.so
+# ---------------------------------------------------------------------------
+_PKG_DIR      = os.path.dirname(os.path.abspath(__file__))
+_PKG_C_SRC    = os.path.join(_PKG_DIR, '_c_src')                       # layout 1 root
+_DEV_CODEGEN  = os.path.join(os.path.dirname(_PKG_DIR), 'codegen', 'dll')  # layout 2 root
+
+# Prefer the in-package copy when it exists (pip-installed case).
+_CODEGEN_ROOT = (
+    _PKG_C_SRC
+    if os.path.isdir(os.path.join(_PKG_C_SRC, 'SPART_C'))
+    else _DEV_CODEGEN
+)
+
+# ---------------------------------------------------------------------------
+# Preload Intel OpenMP runtime (libiomp5.so) required by MATLAB Coder .so
+# ---------------------------------------------------------------------------
+_LIBIOMP5_CANDIDATES = [
+    # MATLAB installations — prefer newest first
+    '/usr/local/MATLAB/R2025a/sys/os/glnxa64/libiomp5.so',
+    '/usr/local/MATLAB/R2024b/sys/os/glnxa64/libiomp5.so',
+    '/usr/local/MATLAB/R2024a/sys/os/glnxa64/libiomp5.so',
+    '/usr/local/MATLAB/R2023b/sys/os/glnxa64/libiomp5.so',
+    # System / Intel MKL paths
+    '/usr/lib/x86_64-linux-gnu/libiomp5.so',
+    '/usr/lib/libiomp5.so',
+    '/usr/local/lib/libiomp5.so',
+]
+
+def _preload_libiomp5():
+    """Load libiomp5.so with RTLD_GLOBAL so that SPART_C.so can resolve it."""
+    # Also search Anaconda environments
+    candidates = list(_LIBIOMP5_CANDIDATES)
+    for root in [os.environ.get('CONDA_PREFIX', ''), os.path.expanduser('~')]:
+        if root:
+            candidates.append(os.path.join(root, 'lib', 'libiomp5.so'))
+
+    for path in candidates:
+        if os.path.isfile(path):
+            try:
+                ctypes.CDLL(path, mode=ctypes.RTLD_GLOBAL)
+                return path
+            except OSError:
+                continue
+    raise OSError(
+        "libiomp5.so not found. Add its directory to LD_LIBRARY_PATH or install "
+        "Intel OpenMP (e.g. `conda install -c intel openmp`)."
+    )
+
+# Try to preload libiomp5.so; failure is non-fatal for pure-Python usage
+# (URDF loading, etc.) but will cause C-library calls to fail later.
+_LIBIOMP5_ERROR = None
+try:
+    _preload_libiomp5()
+except OSError as _e:
+    _LIBIOMP5_ERROR = str(_e)
+
+# Cache of loaded libraries: {so_path: ctypes.CDLL}
+_libs = {}
+
+
+def _find_matlab_include(src_dir):
+    """
+    Return the path to MATLAB's extern/include directory, or None if not found.
+
+    Search order:
+    1. MATLAB_ROOT environment variable
+    2. MATLAB_ROOT value parsed from SPART_C_rtw.mk (generated at Coder time)
+    3. Common installation prefixes (/usr/local/MATLAB/R*, /opt/matlab/R*)
+    """
+    import glob, re
+
+    candidates = []
+
+    # 1. Env var
+    env_root = os.environ.get('MATLAB_ROOT', '')
+    if env_root:
+        candidates.append(os.path.join(env_root, 'extern', 'include'))
+
+    # 2. Parse .mk file
+    mk = os.path.join(src_dir, 'SPART_C_rtw.mk')
+    if os.path.isfile(mk):
+        with open(mk) as fh:
+            for line in fh:
+                m = re.match(r'MATLAB_ROOT\s*=\s*(.+)', line)
+                if m:
+                    candidates.append(os.path.join(m.group(1).strip(), 'extern', 'include'))
+                    break
+
+    # 3. Common prefixes
+    for pattern in ['/usr/local/MATLAB/R*/extern/include',
+                    '/opt/matlab/R*/extern/include',
+                    os.path.expanduser('~/MATLAB/R*/extern/include')]:
+        candidates.extend(sorted(glob.glob(pattern), reverse=True))  # newest first
+
+    # 4. Local fallback — tmwtypes.h manually placed alongside the C sources
+    candidates.append(src_dir)
+
+    for path in candidates:
+        if os.path.isfile(os.path.join(path, 'tmwtypes.h')):
+            return path
+    return None
+
+
+def _build_spart_so(so_path):
+    """
+    Compile SPART_C.so from its bundled C sources using gcc.
+
+    Called automatically when:
+    - The .so file does not exist
+    - The .so is older than any .c source file in the same directory
+    - Loading the existing .so raises an OSError (e.g. wrong architecture)
+
+    Requirements: gcc with OpenMP support (-fopenmp).  No MATLAB needed —
+    all headers (including rtwtypes.h) are shipped alongside the .c files.
+    """
+    import subprocess, shutil
+
+    src_dir = os.path.dirname(os.path.abspath(so_path))
+
+    # Verify gcc is available
+    if not shutil.which('gcc'):
+        raise RuntimeError(
+            "gcc not found on PATH.  Install gcc (e.g. `sudo apt install gcc`) "
+            "to allow automatic rebuild of SPART_C.so."
+        )
+
+    c_sources = [f for f in os.listdir(src_dir) if f.endswith('.c')]
+    if not c_sources:
+        raise RuntimeError(f"No .c source files found in {src_dir}")
+
+    # Locate MATLAB extern/include for tmwtypes.h (included by rtwtypes.h)
+    matlab_inc = _find_matlab_include(src_dir)
+    if matlab_inc and matlab_inc != src_dir:
+        # Cache tmwtypes.h locally so future rebuilds work without MATLAB
+        local_copy = os.path.join(src_dir, 'tmwtypes.h')
+        if not os.path.isfile(local_copy):
+            import shutil as _shutil
+            _shutil.copy2(os.path.join(matlab_inc, 'tmwtypes.h'), local_copy)
+    extra_inc = [f'-I{matlab_inc}'] if matlab_inc and matlab_inc != src_dir else []
+    if not matlab_inc:
+        import warnings
+        warnings.warn(
+            "MATLAB extern/include not found and no local tmwtypes.h present; "
+            "build may fail.  Set MATLAB_ROOT env var, or copy tmwtypes.h from "
+            "MATLAB's extern/include into codegen/dll/SPART_C/.",
+            RuntimeWarning, stacklevel=3
+        )
+
+    cmd = (
+        ['gcc', '-shared', '-fPIC', '-fopenmp', '-O2',
+         '-msse2', '-fwrapv', '-fno-predictive-commoning',
+         f'-I{src_dir}'] + extra_inc
+        + ['-o', so_path]
+        + [os.path.join(src_dir, f) for f in c_sources]
+        + ['-lm']
+    )
+
+    print(f"[PySPART] Building SPART_C.so from source in {src_dir} …")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"SPART_C.so build failed (exit {result.returncode}):\n"
+            f"{result.stderr.strip()}"
+        )
+    print("[PySPART] Build succeeded.")
+
+
+def _so_needs_rebuild(so_path):
+    """Return True if the .so is missing or older than any .c source."""
+    if not os.path.isfile(so_path):
+        return True
+    so_mtime = os.path.getmtime(so_path)
+    src_dir  = os.path.dirname(os.path.abspath(so_path))
+    for fname in os.listdir(src_dir):
+        if fname.endswith('.c'):
+            if os.path.getmtime(os.path.join(src_dir, fname)) > so_mtime:
+                return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Box-geometry helpers (used by the matplotlib trajectory animator)
+# ---------------------------------------------------------------------------
+
+# 8 corners of a unit box (±1, ±1, ±1), row = one corner
+_BOX_CORNERS_UNIT = np.array(
+    [[-1, -1, -1], [-1, -1,  1], [-1,  1, -1], [-1,  1,  1],
+     [ 1, -1, -1], [ 1, -1,  1], [ 1,  1, -1], [ 1,  1,  1]],
+    dtype=float)
+
+# 12 edges as index pairs (connects only adjacent corners)
+_BOX_EDGES = [
+    (0, 1), (2, 3), (4, 5), (6, 7),   # along Z
+    (0, 2), (1, 3), (4, 6), (5, 7),   # along Y
+    (0, 4), (1, 5), (2, 6), (3, 7),   # along X
+]
+
+
+def _box_segments(half_extents, R0, r0):
+    """
+    Return a list of (2, 3) arrays representing the 12 edges of a box
+    with the given half-extents, rotated by R0 and translated to r0.
+    """
+    corners = (_BOX_CORNERS_UNIT * np.asarray(half_extents))  # (8, 3) local
+    corners_w = (R0 @ corners.T).T + r0                       # (8, 3) world
+    return [np.array([corners_w[i], corners_w[j]]) for i, j in _BOX_EDGES]
+
+
+def _parse_base_box_halfextents(urdf_path):
+    """
+    Parse the <box size> of the first <visual> element of the root link
+    (the link not referenced as a child in any joint) from a URDF file.
+    Returns a (3,) numpy array of half-extents, or None.
+    """
+    try:
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(urdf_path)
+        root = tree.getroot()
+        # Find child link names from all joints
+        children = {j.find('child').get('link')
+                    for j in root.iter('joint')
+                    if j.find('child') is not None}
+        # The base link is whichever <link> is not a child
+        base_link_name = None
+        for link in root.iter('link'):
+            if link.get('name') not in children:
+                base_link_name = link.get('name')
+                break
+        if base_link_name is None:
+            return None
+        for link in root.iter('link'):
+            if link.get('name') == base_link_name:
+                box = link.find('.//visual/geometry/box')
+                if box is not None:
+                    size = np.fromstring(box.get('size', ''), sep=' ')
+                    if size.size == 3:
+                        return size / 2.0
+    except Exception:
+        pass
+    return None
+
+
+def _load_so(so_path, init_fn, fn_name, fn_argtypes):
+    """
+    Load a MATLAB Coder-generated shared library (once) and register its symbols.
+
+    Parameters
+    ----------
+    so_path    : absolute path to the .so file
+    init_fn    : name of the initialise function  (e.g. 'SPART_C_initialize')
+    fn_name    : name of the main C function      (e.g. 'Kinematics_C')
+    fn_argtypes: list of ctypes argument types for fn_name
+
+    Returns
+    -------
+    The loaded ctypes.CDLL instance.
+    """
+    if so_path in _libs:
+        return _libs[so_path]
+
+    # Rebuild if missing or sources are newer
+    if _so_needs_rebuild(so_path):
+        _build_spart_so(so_path)
+
+    # Load — if it fails (e.g. wrong arch on a fresh checkout), rebuild and retry
+    try:
+        lib = ctypes.CDLL(so_path)
+    except OSError as exc:
+        print(f"[PySPART] Failed to load {so_path} ({exc}); attempting rebuild …")
+        _build_spart_so(so_path)
+        lib = ctypes.CDLL(so_path)
+
+    getattr(lib, init_fn)()
+
+    # --- emxAPI — present in every MATLAB Coder C library ---
+    _p  = ctypes.c_void_p
+    _pd = ctypes.POINTER(ctypes.c_double)
+    _i  = ctypes.c_int
+    lib.emxCreateWrapper_real_T.restype     = _p
+    lib.emxCreateWrapper_real_T.argtypes    = [_pd, _i, _i]
+    lib.emxCreateWrapper_struct0_T.restype  = _p
+    lib.emxCreateWrapper_struct0_T.argtypes = [_p, _i, _i]
+    lib.emxCreateWrapper_struct1_T.restype  = _p
+    lib.emxCreateWrapper_struct1_T.argtypes = [_p, _i, _i]
+    lib.emxCreate_real_T.restype            = _p
+    lib.emxCreate_real_T.argtypes           = [_i, _i]
+    lib.emxDestroyArray_real_T.restype      = None
+    lib.emxDestroyArray_real_T.argtypes     = [_p]
+    lib.emxDestroyArray_struct0_T.restype   = None
+    lib.emxDestroyArray_struct0_T.argtypes  = [_p]
+    lib.emxDestroyArray_struct1_T.restype   = None
+    lib.emxDestroyArray_struct1_T.argtypes  = [_p]
+
+    # --- cell_wrap emxAPI ---
+    lib.emxCreateWrapper_cell_wrap_1.restype     = _p
+    lib.emxCreateWrapper_cell_wrap_1.argtypes    = [_p, _i, _i]
+    lib.emxCreateWrapper_cell_wrap_2.restype     = _p
+    lib.emxCreateWrapper_cell_wrap_2.argtypes    = [_p, _i, _i]
+    lib.emxCreateWrapperND_cell_wrap_1.restype   = _p
+    lib.emxCreateWrapperND_cell_wrap_1.argtypes  = [_p, _i, ctypes.POINTER(_i)]
+    lib.emxCreateWrapperND_cell_wrap_2.restype   = _p
+    lib.emxCreateWrapperND_cell_wrap_2.argtypes  = [_p, _i, ctypes.POINTER(_i)]
+    lib.emxCreate_cell_wrap_1.restype            = _p
+    lib.emxCreate_cell_wrap_1.argtypes           = [_i, _i]
+    lib.emxCreate_cell_wrap_2.restype            = _p
+    lib.emxCreate_cell_wrap_2.argtypes            = [_i, _i]
+    lib.emxDestroyArray_cell_wrap_1.restype      = None
+    lib.emxDestroyArray_cell_wrap_1.argtypes     = [_p]
+    lib.emxDestroyArray_cell_wrap_2.restype      = None
+    lib.emxDestroyArray_cell_wrap_2.argtypes     = [_p]
+    lib.emxCreate_struct1_T.restype              = _p
+    lib.emxCreate_struct1_T.argtypes             = [_i, _i]
+    # ND variants (needed to create 1-D output cell arrays, e.g. Bi0)
+    lib.emxCreateND_cell_wrap_1.restype          = _p
+    lib.emxCreateND_cell_wrap_1.argtypes         = [_i, ctypes.POINTER(_i)]
+    lib.emxCreateND_real_T.restype               = _p
+    lib.emxCreateND_real_T.argtypes              = [_i, ctypes.POINTER(_i)]
+
+    # --- register the main function ---
+    fn = getattr(lib, fn_name)
+    fn.restype  = None
+    fn.argtypes = fn_argtypes
+
+    _libs[so_path] = lib
+    return lib
+
+
+def _get_spart_lib():
+    """Load SPART_C.so and register all compiled SPART functions."""
+    _p  = ctypes.c_void_p
+    _pd = ctypes.POINTER(ctypes.c_double)
+    lib = _load_so(
+        so_path     = os.path.join(_CODEGEN_ROOT, 'SPART_C', 'SPART_C.so'),
+        init_fn     = 'SPART_C_initialize',
+        fn_name     = 'Kinematics_C', # Correct, its here only because its the first function loaded. The others are then appended.
+        fn_argtypes = [
+            _pd,              # R0[9]
+            _pd,              # r0[3]
+            _p,               # qm          (emxArray_real_T*)
+            ctypes.c_double,  # nLinksJoints
+            _p,               # robotJoints (emxArray_struct0_T*)
+            _p,               # robotLinks  (emxArray_struct1_T*)
+            _p, _p, _p, _p, _p, _p,  # RJ, RL, rJ, rL, e, g  (emxArray_real_T*)
+        ]
+    )
+    # Register additional functions (idempotent after first load)
+    if not hasattr(lib, '_spart_extra_registered'):
+        # DiffKinematics_C(R0[9], r0[3], rL*, e*, g*, n, conBranch*, joints*,
+        #                  Bij* out, Bi0* out, P0[36] out, pm* out)
+        lib.DiffKinematics_C.restype  = None
+        lib.DiffKinematics_C.argtypes = [
+            _pd, _pd, _p, _p, _p, ctypes.c_double, _p, _p, _p, _p, _pd, _p]
+
+        # Velocities_C(Bij*, Bi0*, P0[36], pm*, u0[6], um*, n, joints*,
+        #              t0[6] out, tL* out)
+        lib.Velocities_C.restype  = None
+        lib.Velocities_C.argtypes = [
+            _p, _p, _pd, _p, _pd, _p, ctypes.c_double, _p, _pd, _p]
+
+        # Accelerations_C(t0[6], tL*, P0[36], pm*, Bi0*, Bij*, u0[6], um*,
+        #                 u0dot[6], umdot*, n, joints*, t0dot[6] out, tLdot* out)
+        lib.Accelerations_C.restype  = None
+        lib.Accelerations_C.argtypes = [
+            _pd, _p, _pd, _p, _p, _p, _pd, _p, _pd, _p,
+            ctypes.c_double, _p, _pd, _p]
+
+        # I_I_C(R0[9], RL*, n, baseInertia[9], links*, I0[9] out, Im* out)
+        lib.I_I_C.restype  = None
+        lib.I_I_C.argtypes = [_pd, _p, ctypes.c_double, _pd, _p, _pd, _p]
+
+        # ID_C(wF0[6], wFm*, t0[6], tL*, t0dot[6], tLdot*, P0[36], pm*,
+        #      I0[9], Im*, Bij*, Bi0*, n, nQ, baseLink*, links*,
+        #      conChild*, conChildBase*, joints*, tau0[6] out, taum* out)
+        lib.ID_C.restype  = None
+        lib.ID_C.argtypes = [
+            _pd, _p, _pd, _p, _pd, _p, _pd, _p,
+            _pd, _p, _p, _p, ctypes.c_double, ctypes.c_double,
+            _p, _p, _p, _p, _p, _pd, _p]
+
+        # FD_C(tau0[6], taum*, wF0[6], wFm*, t0[6], tL*, P0[36], pm*,
+        #      I0[9], Im*, Bij*, Bi0*, u0[6], um*, n, nQ, baseLink*, links*,
+        #      conChild*, conChildBase*, joints*, u0dot[6] out, umdot* out)
+        lib.FD_C.restype  = None
+        lib.FD_C.argtypes = [
+            _pd, _p, _pd, _p, _pd, _p, _pd, _p,
+            _pd, _p, _p, _p, _pd, _p, ctypes.c_double, ctypes.c_double,
+            _p, _p, _p, _p, _p, _pd, _p]
+
+        # SPART_SPACEROBOT_ODE_C(t, y*, tau*, nLinksJoints, joints*, links*,
+        #      conBranch*, baseInertia[9], nQ, baseLink*, conChild*, conChildBase*,
+        #      dydt* out)
+        lib.SPART_SPACEROBOT_ODE_C.restype  = None
+        lib.SPART_SPACEROBOT_ODE_C.argtypes = [
+            ctypes.c_ulong,   # t
+            _p,               # y
+            _p,               # tau
+            ctypes.c_double,  # nLinksJoints
+            _p,               # robotJoints
+            _p,               # robotLinks
+            _p,               # robotConBranch
+            _pd,              # robotBaseInertia[9]
+            ctypes.c_double,  # nQ
+            _p,               # robotBaseLink
+            _p,               # robotConChild
+            _p,               # robotConChildBase
+            _p,               # dydt (output)
+        ]
+
+        lib._spart_extra_registered = True
+    return lib
+
+
+
+# ---------------------------------------------------------------------------
+# Reusable helpers for struct packing
+# ---------------------------------------------------------------------------
+
+def _pack_joints(robot):
+    """Pack robot.joints into a C struct0_T array."""
+    n = robot.n_links_joints
+    c_joints = (_CJoint * n)()
+    for i, j in enumerate(robot.joints):
+        c_joints[i].id          = j.id
+        c_joints[i].type        = j.type
+        c_joints[i].q_id        = j.q_id
+        c_joints[i].parent_link = j.parent_link
+        c_joints[i].child_link  = j.child_link
+        T_flat = j.T.flatten(order='F')
+        for k in range(3):  c_joints[i].axis[k] = float(j.axis[k])
+        for k in range(16): c_joints[i].T[k]    = float(T_flat[k])
+    return c_joints
+
+
+def _pack_links(robot):
+    """Pack robot.links into a C struct1_T array."""
+    n = robot.n_links_joints
+    c_links = (_CLink * n)()
+    for i, l in enumerate(robot.links):
+        c_links[i].id           = l.id
+        c_links[i].parent_joint = l.parent_joint
+        c_links[i].mass         = l.mass
+        T_flat = l.T.flatten(order='F')
+        I_flat = l.inertia.flatten(order='F')
+        for k in range(16): c_links[i].T[k]       = float(T_flat[k])
+        for k in range(9):  c_links[i].inertia[k] = float(I_flat[k])
+    return c_links
+
+
+def _read_emx(ptr):
+    """Copy data out of any C-allocated emxArray_real_T into a numpy array."""
+    emx = ctypes.cast(ptr, ctypes.POINTER(_EmxReal)).contents
+    nd  = emx.numDimensions
+    shape = tuple(emx.size[i] for i in range(nd))
+    total = 1
+    for s in shape: total *= s
+    arr = np.ctypeslib.as_array(emx.data, shape=(total,)).copy()
+    return arr.reshape(shape, order='F')   # column-major → correct row/col layout
+
+
+def _pack_bij(Bij_arr, n):
+    """
+    Pack a (n, n, 6, 6) numpy array into a flat C array of _CCellWrap1.
+    MATLAB Coder col-major indexing: Bij{i,j} -> data[j*n + i] (0-indexed).
+    Each 6x6 block stored col-major: f1[col*6+row] = Bij[i,j,row,col].
+    """
+    c_data = (_CCellWrap1 * (n * n))()
+    arr = np.asarray(Bij_arr, dtype=np.float64)           # (n, n, 6, 6)
+    # transpose(1,0,3,2) → (j, i, col, row), C-reshape → flat[j*n+i, col*6+row]
+    flat = arr.transpose(1, 0, 3, 2).reshape(n * n, 36)  # always returns a copy
+    ctypes.memmove(c_data, flat.ctypes.data, flat.nbytes)
+    return c_data
+
+
+def _pack_bi0(Bi0_arr, n):
+    """
+    Pack a (n, 6, 6) numpy array into a flat C array of _CCellWrap1.
+    Bi0{i} -> data[i] (0-indexed).
+    Each 6x6 block stored col-major: f1[col*6+row] = Bi0[i,row,col].
+    """
+    c_data = (_CCellWrap1 * n)()
+    arr = np.asarray(Bi0_arr, dtype=np.float64)   # (n, 6, 6)
+    # transpose(0,2,1) → (i, col, row), C-reshape → flat[i, col*6+row]
+    flat = arr.transpose(0, 2, 1).reshape(n, 36)  # always returns a copy
+    ctypes.memmove(c_data, flat.ctypes.data, flat.nbytes)
+    return c_data
+
+
+def _pack_im(Im_arr, n):
+    """
+    Pack a (n, 3, 3) numpy array into a flat C array of _CCellWrap2.
+    Im{i} -> data[i] (0-indexed).
+    Each 3x3 block stored col-major: f1[col*3+row] = Im[i,row,col].
+    """
+    c_data = (_CCellWrap2 * n)()
+    arr = np.asarray(Im_arr, dtype=np.float64)   # (n, 3, 3)
+    # transpose(0,2,1) → (i, col, row), C-reshape → flat[i, col*3+row]
+    flat = arr.transpose(0, 2, 1).reshape(n, 9)  # always returns a copy
+    ctypes.memmove(c_data, flat.ctypes.data, flat.nbytes)
+    return c_data
+
+
+def _read_emx_cw1(ptr, n):
+    """
+    Read a C emxArray_cell_wrap_1 back into a numpy array.
+    Returns:
+      (n, n, 6, 6) when the emx is 2-D [n, n]   (Bij)
+      (n,    6, 6) when the emx is 1-D [n]       (Bi0)
+    Uses ctypes.string_at for a safe single byte-copy of the C buffer.
+    """
+    emx = ctypes.cast(ptr, ctypes.POINTER(_EmxCellWrap1)).contents
+    nd    = emx.numDimensions
+    shape = tuple(emx.size[i] for i in range(nd))
+    n_elem = 1
+    for s in shape: n_elem *= s
+
+    if n_elem == 0:
+        if len(shape) == 2 and shape[1] > 1:
+            return np.zeros((shape[0], shape[1], 6, 6))
+        return np.zeros((shape[0], 6, 6))
+
+    # Safe byte-copy: each cell_wrap_1 contains 36 doubles (288 bytes)
+    data_addr = ctypes.cast(emx.data, ctypes.c_void_p).value
+    raw = ctypes.string_at(data_addr, n_elem * 36 * 8)
+    flat = np.frombuffer(raw, dtype=np.float64).reshape(n_elem, 36)
+
+    if len(shape) == 2 and shape[1] > 1:
+        rows, cols = shape
+        # flat[r + c*rows, col*6+row] = Bij[r,c,row,col]
+        # reshape(rows*cols,6,6) → tmp[r+c*rows, col, row]; transpose → (r+c*rows, row, col)
+        # reshape(cols,rows,6,6) → [c,r,row,col]; transpose(1,0,2,3) → [r,c,row,col]
+        tmp = flat.reshape(rows * cols, 6, 6).transpose(0, 2, 1).reshape(cols, rows, 6, 6)
+        return tmp.transpose(1, 0, 2, 3).copy()
+    else:
+        n_items = shape[0]
+        # flat[i, col*6+row] = cell[row,col]; reshape(n,6,6)→[i,col,row]; transpose→[i,row,col]
+        return flat.reshape(n_items, 6, 6).transpose(0, 2, 1).copy()
+
+
+def _read_emx_cw2(ptr):
+    """
+    Read a C emxArray_cell_wrap_2 back into a (n, 3, 3) numpy array.
+    Uses ctypes.string_at for a safe single byte-copy of the C buffer.
+    """
+    emx = ctypes.cast(ptr, ctypes.POINTER(_EmxCellWrap2)).contents
+    nd    = emx.numDimensions
+    shape = tuple(emx.size[i] for i in range(nd))
+    n_items = max(shape) if shape else 0
+
+    if n_items == 0:
+        return np.zeros((0, 3, 3))
+
+    # Safe byte-copy: each cell_wrap_2 contains 9 doubles (72 bytes)
+    data_addr = ctypes.cast(emx.data, ctypes.c_void_p).value
+    raw = ctypes.string_at(data_addr, n_items * 9 * 8)
+    flat = np.frombuffer(raw, dtype=np.float64).reshape(n_items, 9)
+
+    # flat[i, col*3+row] = Im[i,row,col]; reshape(n,3,3)→[i,col,row]; transpose→[i,row,col]
+    return flat.reshape(n_items, 3, 3).transpose(0, 2, 1).copy()
+
+
+# ---------------------------------------------------------------------------
+# Native Python URDF parsing  (no MATLAB required)
+# Mirrors urdf2robot.m + ConnectivityMap.m exactly — all ids are 1-based.
+# ---------------------------------------------------------------------------
+
+import xml.etree.ElementTree as _ET
+
+def _str_to_vec(s):
+    """Space-separated string → numpy float64 array."""
+    if not s:
+        return np.zeros(3)
+    return np.array([float(x) for x in s.split()])
+
+
+def _rpy_to_dcm(rpy):
+    """
+    URDF RPY (fixed-axis X-Y-Z) → DCM.
+    Matches MATLAB  ``Angles321_DCM(rpy')'’’  used in urdf2robot.m:
+        DCM = Rz(yaw) @ Ry(pitch) @ Rx(roll)
+    """
+    r, p, y = rpy
+    Rx = np.array([[1,        0,         0        ],
+                   [0,  np.cos(r), -np.sin(r)],
+                   [0,  np.sin(r),  np.cos(r)]])
+    Ry = np.array([[ np.cos(p), 0, np.sin(p)],
+                   [0,          1,        0  ],
+                   [-np.sin(p), 0, np.cos(p)]])
+    Rz = np.array([[np.cos(y), -np.sin(y), 0],
+                   [np.sin(y),  np.cos(y), 0],
+                   [0,          0,         1]])
+    return Rz @ Ry @ Rx
+
+
+def _get_transform_from_origin(origin_elem):
+    """Extract a 4×4 homogeneous transform from an <origin> XML element."""
+    T = np.eye(4)
+    if origin_elem is not None:
+        if 'xyz' in origin_elem.attrib:
+            T[:3, 3] = _str_to_vec(origin_elem.attrib['xyz'])
+        if 'rpy' in origin_elem.attrib:
+            T[:3, :3] = _rpy_to_dcm(_str_to_vec(origin_elem.attrib['rpy']))
+    return T
+
+
+def _connectivity_map(robot):
+    """
+    Compute branch / child / child_base connectivity maps.
+
+    Direct Python port of ConnectivityMap.m.  All link and joint indices
+    inside the structures are 1-based; link id 0 denotes the base link.
+
+    Parameters
+    ----------
+    robot : RobotModel
+
+    Returns
+    -------
+    branch     : ndarray (n, n)
+    child      : ndarray (n, n)
+    child_base : ndarray (n,)
+    """
+    n = robot.n_links_joints
+
+    branch = np.zeros((n, n))
+    for i in range(n, 0, -1):             # i = n … 1 (1-based link id)
+        last = i
+        branch[i - 1, i - 1] = 1.0
+        while True:
+            pj          = int(robot.links[last - 1].parent_joint)  # 1-based
+            parent_link = int(robot.joints[pj - 1].parent_link)    # 0 or 1-based
+            if parent_link == 0:
+                break
+            branch[i - 1, parent_link - 1] = 1.0
+            last = parent_link
+
+    child      = np.zeros((n, n))
+    child_base = np.zeros(n)
+    for i in range(n, 0, -1):
+        pj          = int(robot.links[i - 1].parent_joint)
+        parent_link = int(robot.joints[pj - 1].parent_link)
+        if parent_link != 0:
+            child[i - 1, parent_link - 1] = 1.0
+        else:
+            child_base[i - 1] = 1.0
+
+    return branch, child, child_base
+
+
+def _parse_urdf(filename, verbose_flag=False):
+    """
+    Load a SPART RobotModel from a URDF file — pure Python, no MATLAB.
+
+    Produces numerically identical results to MATLAB ``urdf2robot.m`` /
+    ``ConnectivityMap.m``.  All joint/link ids and q_ids are 1-based,
+    matching what the MATLAB Coder-generated C library expects.
+
+    Parameters
+    ----------
+    filename     : str
+    verbose_flag : bool, optional
+
+    Returns
+    -------
+    robot      : RobotModel
+    robot_keys : dict
+        ``{'link_id': {name: id}, 'joint_id': {name: id}, 'q_id': {name: q_id}}``
+    """
+    tree = _ET.parse(filename)
+    root = tree.getroot()
+
+    if root.tag != 'robot':
+        raise ValueError("Root element is not <robot>.")
+
+    robot_name  = root.attrib.get('name', 'unnamed')
+    links_urdf  = [c for c in root if c.tag == 'link']
+    joints_urdf = [c for c in root if c.tag == 'joint']  # noqa: F841
+
+    n_links_total = len(links_urdf)
+    if verbose_flag:
+        print(f"Number of links: {n_links_total} (including the base link)")
+
+    links_map  = {}
+    joints_map = {}
+
+    # --- Parse links ---
+    for link_xml in links_urdf:
+        name        = link_xml.attrib['name']
+        link_T      = np.eye(4)
+        mass_val    = 0.0
+        inertia_mat = np.zeros((3, 3))
+
+        inertial = link_xml.find('inertial')
+        if inertial is None:
+            raise ValueError(
+                f"Link '{name}' is missing an <inertial> element.  "
+                f"SPART requires mass and inertia data for every link.  "
+                f"Add an <inertial> block to this link in the URDF."
+            )
+
+        link_T = _get_transform_from_origin(inertial.find('origin'))
+
+        mass_elem = inertial.find('mass')
+        if mass_elem is not None and 'value' in mass_elem.attrib:
+            mass_val = float(mass_elem.attrib['value'])
+
+        inertia_elem = inertial.find('inertia')
+        if inertia_elem is not None:
+            ixx = float(inertia_elem.attrib.get('ixx', 0))
+            iyy = float(inertia_elem.attrib.get('iyy', 0))
+            izz = float(inertia_elem.attrib.get('izz', 0))
+            ixy = float(inertia_elem.attrib.get('ixy', 0))
+            iyz = float(inertia_elem.attrib.get('iyz', 0))
+            ixz = float(inertia_elem.attrib.get('ixz', 0))
+            inertia_mat = np.array([[ixx, ixy, ixz],
+                                    [ixy, iyy, iyz],
+                                    [ixz, iyz, izz]])
+
+        links_map[name] = {
+            'name':         name,
+            'T':            link_T,
+            'mass':         mass_val,
+            'inertia':      inertia_mat,
+            'parent_joint': [],
+            'child_joint':  [],
+        }
+
+    # --- Parse joints ---
+    for joint_xml in [c for c in root if c.tag == 'joint']:
+        name        = joint_xml.attrib['name']
+        j_type_name = joint_xml.attrib.get('type', 'fixed')
+
+        if j_type_name in ('revolute', 'continuous'):
+            j_type = 1
+        elif j_type_name == 'prismatic':
+            j_type = 2
+        elif j_type_name == 'fixed':
+            j_type = 0
+        else:
+            raise ValueError(f"Joint type '{j_type_name}' not supported.")
+
+        joint_T   = _get_transform_from_origin(joint_xml.find('origin'))
+
+        axis_elem = joint_xml.find('axis')
+        axis_vec  = np.zeros(3)
+        if axis_elem is not None and 'xyz' in axis_elem.attrib:
+            axis_vec = _str_to_vec(axis_elem.attrib['xyz'])
+        elif j_type != 0:
+            raise ValueError(f"'{name}' is a moving joint and requires a joint axis.")
+
+        parent_link_name = ''
+        parent_elem = joint_xml.find('parent')
+        if parent_elem is not None:
+            parent_link_name = parent_elem.attrib.get('link', '')
+            if parent_link_name in links_map:
+                links_map[parent_link_name]['child_joint'].append(name)
+
+        child_link_name = ''
+        child_elem = joint_xml.find('child')
+        if child_elem is not None:
+            child_link_name = child_elem.attrib.get('link', '')
+            if child_link_name in links_map:
+                links_map[child_link_name]['parent_joint'].append(name)
+
+        # Correct joint transform so it is relative to the parent link's
+        # inertial frame:  joint.T = inv(parent_link.T) @ joint.T
+        if parent_link_name in links_map:
+            parent_T = links_map[parent_link_name]['T']
+            joint_T  = np.linalg.solve(parent_T, joint_T)
+
+        joints_map[name] = {
+            'name':        name,
+            'type':        j_type,
+            'parent_link': parent_link_name,
+            'child_link':  child_link_name,
+            'axis':        axis_vec,
+            'T':           joint_T,
+        }
+
+    # --- Find base link ---
+    base_link = None
+    for lname, ldata in links_map.items():
+        if not ldata['parent_joint']:
+            base_link = lname
+            if verbose_flag:
+                print(f"Base link: {base_link}")
+            break
+    if base_link is None:
+        raise ValueError("Robot has no single base link!")
+
+    robot_keys = {'link_id': {}, 'joint_id': {}, 'q_id': {}}
+    robot_keys['link_id'][base_link] = 0
+
+    n_links_joints = n_links_total - 1
+    clink          = links_map[base_link]
+
+    robot_joints = []
+    robot_links  = []
+    counters     = {'nl': 0, 'nj': 0, 'nq': 0}
+
+    def _recurse(c_joint_name):
+        cj = joints_map[c_joint_name]
+
+        j_id = counters['nj'] + 1   # 1-based
+        counters['nj'] += 1
+
+        j_type = cj['type']
+        if j_type > 0:
+            q_id = counters['nq'] + 1   # 1-based
+            robot_keys['q_id'][cj['name']] = q_id
+            counters['nq'] += 1
+        else:
+            q_id = -1
+
+        l_id = counters['nl'] + 1   # 1-based
+        counters['nl'] += 1
+
+        robot_joints.append(JointData(
+            id          = j_id,
+            type        = j_type,
+            q_id        = q_id,
+            parent_link = robot_keys['link_id'][cj['parent_link']],
+            child_link  = l_id,
+            axis        = cj['axis'],
+            T           = cj['T'],
+        ))
+
+        child_l = links_map[cj['child_link']]
+        robot_links.append(LinkData(
+            id           = l_id,
+            parent_joint = j_id,    # 1-based
+            T            = child_l['T'],
+            mass         = child_l['mass'],
+            inertia      = child_l['inertia'],
+        ))
+
+        robot_keys['joint_id'][cj['name']]     = j_id
+        robot_keys['link_id'][child_l['name']] = l_id
+
+        for next_j in child_l['child_joint']:
+            _recurse(next_j)
+
+    for root_j in clink['child_joint']:
+        _recurse(root_j)
+
+    n_q = counters['nq']
+    if verbose_flag:
+        print(f"Number of joint variables: {n_q}")
+
+    # Build connectivity maps
+    robot_partial = RobotModel(
+        name              = robot_name,
+        n_q               = n_q,
+        n_links_joints    = n_links_joints,
+        joints            = robot_joints,
+        links             = robot_links,
+        con_branch        = np.zeros((n_links_joints, n_links_joints)),
+        con_child         = np.zeros((n_links_joints, n_links_joints)),
+        con_child_base    = np.zeros(n_links_joints),
+        base_link_mass    = clink['mass'],
+        base_link_inertia = clink['inertia'],
+    )
+
+    branch, child, child_base = _connectivity_map(robot_partial)
+
+    robot = RobotModel(
+        name              = robot_name,
+        n_q               = n_q,
+        n_links_joints    = n_links_joints,
+        joints            = robot_joints,
+        links             = robot_links,
+        con_branch        = branch,
+        con_child         = child,
+        con_child_base    = child_base,
+        base_link_mass    = clink['mass'],
+        base_link_inertia = clink['inertia'],
+    )
+
+    return robot, robot_keys
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def load_robot(urdf_path):
+    """
+    Load a SPART robot model from a URDF file.
+
+    Uses the native Python URDF parser (_parse_urdf) — no MATLAB engine
+    required.  The returned RobotModel is numerically identical to what
+    MATLAB’s urdf2robot.m / ConnectivityMap.m would produce.
+
+    Parameters
+    ----------
+    urdf_path : str
+        Absolute or relative path to the URDF file.
+
+    Returns
+    -------
+    RobotModel
+    """
+    robot, _ = _parse_urdf(os.path.abspath(urdf_path))
+    return robot
+
+
+def _load_robot_matlab(urdf_path):
+    """
+    Load a SPART robot model from a URDF file via the MATLAB engine.
+
+    This is the legacy path kept only for cross-validation against the native
+    Python loader.  Requires matlab.engine and a MATLAB installation.
+
+    Parameters
+    ----------
+    urdf_path : str
+        Absolute path to the URDF file.
+
+    Returns
+    -------
+    RobotModel
+    """
+    eng = _get_engine()
+
+    (n_links_joints, n_q_ml, robot_name,
+     ml_joints, ml_links,
+     ml_con_branch, ml_con_child, ml_con_child_base,
+     ml_base_mass, ml_base_inertia) = eng.urdf2robot_py(urdf_path, nargout=10)
+    n = int(n_links_joints)
+
+    joints_arr = np.array(ml_joints)   # (24, n)
+    links_arr  = np.array(ml_links)    # (28, n)
+
+    joints = []
+    for i in range(n):
+        col = joints_arr[:, i]
+        joints.append(JointData(
+            id          = col[0],
+            type        = col[1],
+            q_id        = col[2],
+            parent_link = col[3],
+            child_link  = col[4],
+            axis        = col[5:8],
+            T           = col[8:24].reshape(4, 4, order='F'),
+        ))
+
+    links = []
+    for i in range(n):
+        col = links_arr[:, i]
+        links.append(LinkData(
+            id           = col[0],
+            parent_joint = col[1],
+            T            = col[2:18].reshape(4, 4, order='F'),
+            mass         = col[18],
+            inertia      = col[19:28].reshape(3, 3, order='F'),
+        ))
+
+    return RobotModel(
+        name               = str(robot_name),
+        n_q                = int(n_q_ml),
+        n_links_joints     = n,
+        joints             = joints,
+        links              = links,
+        con_branch         = np.array(ml_con_branch),
+        con_child          = np.array(ml_con_child),
+        con_child_base     = np.array(ml_con_child_base).flatten(),
+        base_link_mass     = float(ml_base_mass),
+        base_link_inertia  = np.array(ml_base_inertia).reshape(3, 3, order='F'),
+    )
+
+
+# ---------------------------------------------------------------------------
+# SPART class — robot-bound interface with cached C structs
+# ---------------------------------------------------------------------------
+
+class SPART:
+    """
+    Robot-bound interface to the SPART compiled functions.
+
+    Instantiate with a URDF path or an already-loaded RobotModel.
+    The C struct arrays are packed once at construction (or when the robot
+    is reassigned via the ``robot`` property) and reused on every call.
+
+    Examples
+    --------
+    >>> spart = SPART('URDF_models/floating_7dof_manipulator.urdf')
+    >>> RJ, RL, rJ, rL, e, g = spart.kinematics(R0_body2I, r0, qm)
+    >>> Bij, Bi0, P0, pm     = spart.diff_kinematics(R0_body2I, r0, rL, e, g)
+    >>> t0, tL               = spart.velocities(Bij, Bi0, P0, pm, u0, um)
+    >>> I0, Im               = spart.i_i(R0_body2I, RL)
+
+    # Switch robot — C structs are rebuilt automatically
+    >>> spart.robot = 'URDF_models/kuka_iiwa.urdf'
+    """
+
+    def __init__(self, robot):
+        """
+        Parameters
+        ----------
+        robot : str or RobotModel
+            Either a path to a URDF file or an already-loaded RobotModel.
+        """
+        self._robot         = None
+        self._c_joints      = None
+        self._c_links       = None
+        self._c_base_link   = None
+        self._c_con_branch  = None   # flat numpy F-order for con_branch
+        self._c_con_child   = None   # flat numpy F-order for con_child
+        self._c_con_cb      = None   # flat numpy for con_child_base
+        self._ode_input_checked = False  # flag: input-size check done once
+        self._urdf_path     = None   # stored when robot is loaded from a file
+        self.robot = robot           # triggers the property setter
+
+    # ------------------------------------------------------------------
+    # robot property
+    # ------------------------------------------------------------------
+
+    @property
+    def robot(self):
+        """The currently active RobotModel."""
+        return self._robot
+
+    @robot.setter
+    def robot(self, value):
+        """Assign a new robot; accepts a URDF path (str) or a RobotModel."""
+        if isinstance(value, str):
+            self._urdf_path = os.path.abspath(value)
+            value = load_robot(value)
+        if not isinstance(value, RobotModel):
+            raise TypeError("robot must be a URDF path (str) or a RobotModel instance")
+        self._robot = value
+        self._c_joints = _pack_joints(value)
+        self._c_links  = _pack_links(value)
+
+        # Base-link struct (struct2_T)
+        bl = _CBaseLink()
+        bl.mass = value.base_link_mass
+        I_flat  = value.base_link_inertia.flatten(order='F')
+        for k in range(9):
+            bl.inertia[k] = float(I_flat[k])
+        self._c_base_link = bl
+
+        # Connectivity matrices (flat F-order numpy, used as pointer inputs)
+        self._c_con_branch = np.asarray(value.con_branch, dtype=np.float64, order='F')
+        self._c_con_child  = np.asarray(value.con_child,  dtype=np.float64, order='F')
+        self._c_con_cb     = np.asarray(value.con_child_base, dtype=np.float64).flatten()
+
+        # A new robot means input sizes may differ; re-run ODE input check
+        self._ode_input_checked = False
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _make_emx_joints(self, lib):
+        n = self._robot.n_links_joints
+        return lib.emxCreateWrapper_struct0_T(
+            ctypes.cast(self._c_joints, ctypes.c_void_p),
+            ctypes.c_int(1), ctypes.c_int(n))
+
+    def _make_emx_links(self, lib):
+        n = self._robot.n_links_joints
+        return lib.emxCreateWrapper_struct1_T(
+            ctypes.cast(self._c_links, ctypes.c_void_p),
+            ctypes.c_int(1), ctypes.c_int(n))
+
+    def _make_emx_real_wrap(self, lib, arr):
+        """Wrap a 1-D or 2-D numpy array in an emxArray_real_T."""
+        c = np.asarray(arr, dtype=np.float64, order='F')
+        ptr = c.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        if c.ndim == 1:
+            return lib.emxCreateWrapper_real_T(ptr, ctypes.c_int(len(c)), ctypes.c_int(1)), c
+        else:
+            rows, cols = c.shape
+            return lib.emxCreateWrapper_real_T(ptr, ctypes.c_int(rows), ctypes.c_int(cols)), c
+
+    def _make_emx_cw1_wrap(self, lib, c_data, rows, cols):
+        """Wrap a flat _CCellWrap1 C array in an emxArray_cell_wrap_1 (2D)."""
+        sizes = (ctypes.c_int * 2)(rows, cols)
+        return lib.emxCreateWrapperND_cell_wrap_1(
+            ctypes.cast(c_data, ctypes.c_void_p),
+            ctypes.c_int(2), sizes)
+
+    def _make_emx_cw2_wrap(self, lib, c_data, n):
+        """Wrap a flat _CCellWrap2 C array in an emxArray_cell_wrap_2 (1xn)."""
+        return lib.emxCreateWrapper_cell_wrap_2(
+            ctypes.cast(c_data, ctypes.c_void_p),
+            ctypes.c_int(1), ctypes.c_int(n))
+
+    # ------------------------------------------------------------------
+    # Kinematics
+    # ------------------------------------------------------------------
+
+    def kinematics(self, R0_body2I, r0, qm):
+        """
+        Compute forward kinematics via the compiled SPART_C.so.
+
+        Parameters
+        ----------
+        R0_body2I : (3,3) array
+            Active rotation from the base-link body CCS to the inertial CCS.
+            Maps body-frame vectors to the inertial frame:
+                V_I = R0_body2I @ V_B
+            NOTE: this is the BODY->INERTIAL rotation.  If your state vector
+            stores R0_I2body (the inertial->body rotation used in the ODE),
+            pass its transpose here: ``R0_body2I = R0_I2body.T``.
+        r0  : (3,)  array – base position vector (inertial frame)
+        qm  : (n_q,) array – joint angles
+
+        Returns
+        -------
+        RJ, RL : (3, 3*n)  rotation matrices of joints / links (body-to-inertial)
+        rJ, rL : (3,  n)   positions of joints / links (inertial frame)
+        e      : (3,  n)   joint axes in inertial frame
+        g      : (3,  n)   vector from joint to link CoM (inertial frame)
+        """
+        lib = _get_spart_lib()
+        n   = self._robot.n_links_joints
+
+        R0_c = np.asarray(R0_body2I, dtype=np.float64, order='F').flatten(order='F')
+        r0_c = np.asarray(r0, dtype=np.float64).flatten()
+        qm_c = np.asarray(qm, dtype=np.float64).flatten()
+
+        R0_ptr = R0_c.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        r0_ptr = r0_c.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        qm_ptr = qm_c.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+
+        emx_qm     = lib.emxCreateWrapper_real_T(qm_ptr, ctypes.c_int(len(qm_c)), ctypes.c_int(1))
+        emx_joints = self._make_emx_joints(lib)
+        emx_links  = self._make_emx_links(lib)
+
+        emx_RJ = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+        emx_RL = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+        emx_rJ = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+        emx_rL = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+        emx_e  = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+        emx_g  = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+
+        lib.Kinematics_C(
+            R0_ptr, r0_ptr, emx_qm, ctypes.c_double(n),
+            emx_joints, emx_links,
+            emx_RJ, emx_RL, emx_rJ, emx_rL, emx_e, emx_g)
+
+        RJ = _read_emx(emx_RJ); RL = _read_emx(emx_RL)
+        rJ = _read_emx(emx_rJ); rL = _read_emx(emx_rL)
+        e  = _read_emx(emx_e);  g  = _read_emx(emx_g)
+
+        lib.emxDestroyArray_real_T(emx_RJ);  lib.emxDestroyArray_real_T(emx_RL)
+        lib.emxDestroyArray_real_T(emx_rJ);  lib.emxDestroyArray_real_T(emx_rL)
+        lib.emxDestroyArray_real_T(emx_e);   lib.emxDestroyArray_real_T(emx_g)
+        lib.emxDestroyArray_real_T(emx_qm)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+        lib.emxDestroyArray_struct1_T(emx_links)
+
+        return RJ, RL, rJ, rL, e, g
+
+    # ------------------------------------------------------------------
+    # Differential Kinematics
+    # ------------------------------------------------------------------
+
+    def diff_kinematics(self, R0_body2I, r0, rL, e, g):
+        """
+        Compute the motion-propagation matrices via DiffKinematics_C.
+
+        Parameters
+        ----------
+        R0_body2I : (3,3)
+            Active rotation from the base-link body CCS to the inertial CCS.
+            Maps body-frame vectors to the inertial frame:
+                V_I = R0_body2I @ V_B
+            NOTE: this is the BODY->INERTIAL rotation.  If your state vector
+            stores R0_I2body (the inertial->body rotation used in the ODE),
+            pass its transpose here: ``R0_body2I = R0_I2body.T``.
+        r0  : (3,)    – base position (inertial frame)
+        rL  : (3, n)  – link CoM positions  (from kinematics)
+        e   : (3, n)  – joint axes          (from kinematics)
+        g   : (3, n)  – joint-to-CoM vectors (from kinematics)
+
+        Returns
+        -------
+        Bij : (n, n, 6, 6) – relative twist-propagation matrices between links
+        Bi0 : (n,    6, 6) – twist propagation from base to each link
+        P0  : (6, 6)       – base-link motion subspace (as a numpy (6,6) array)
+        pm  : (6, n)       – joint motion subspace
+        """
+        lib  = _get_spart_lib()
+        n    = self._robot.n_links_joints
+        _pd  = ctypes.POINTER(ctypes.c_double)
+
+        R0_c = np.asarray(R0_body2I, dtype=np.float64, order='F').flatten(order='F')
+        r0_c = np.asarray(r0, dtype=np.float64).flatten()
+
+        R0_ptr = R0_c.ctypes.data_as(_pd)
+        r0_ptr = r0_c.ctypes.data_as(_pd)
+
+        emx_rL, _rL = self._make_emx_real_wrap(lib, rL)
+        emx_e,  _e  = self._make_emx_real_wrap(lib, e)
+        emx_g,  _g  = self._make_emx_real_wrap(lib, g)
+        emx_cb, _cb = self._make_emx_real_wrap(lib, self._c_con_branch)
+        emx_joints  = self._make_emx_joints(lib)
+
+        P0_c   = (ctypes.c_double * 36)()
+        emx_Bij = lib.emxCreate_cell_wrap_1(ctypes.c_int(0), ctypes.c_int(0))
+        # Bi0 is 1-D in C (only size[0] is set) — must create as 1D or emxEnsureCapacity
+        # computes 0 elements and never allocates, causing heap corruption.
+        _bi0_sz = (ctypes.c_int * 1)(0)
+        emx_Bi0 = lib.emxCreateND_cell_wrap_1(ctypes.c_int(1), _bi0_sz)
+        emx_pm  = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+
+        lib.DiffKinematics_C(
+            R0_ptr, r0_ptr,
+            emx_rL, emx_e, emx_g,
+            ctypes.c_double(n),
+            emx_cb, emx_joints,
+            emx_Bij, emx_Bi0,
+            P0_c, emx_pm)
+
+        Bij = _read_emx_cw1(emx_Bij, n)
+        Bi0 = _read_emx_cw1(emx_Bi0, n)
+        P0  = np.array(P0_c, dtype=np.float64).reshape(6, 6, order='F')
+        pm  = _read_emx(emx_pm)
+
+        lib.emxDestroyArray_cell_wrap_1(emx_Bij)
+        lib.emxDestroyArray_cell_wrap_1(emx_Bi0)
+        lib.emxDestroyArray_real_T(emx_pm)
+        lib.emxDestroyArray_real_T(emx_rL)
+        lib.emxDestroyArray_real_T(emx_e)
+        lib.emxDestroyArray_real_T(emx_g)
+        lib.emxDestroyArray_real_T(emx_cb)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+
+        return Bij, Bi0, P0, pm
+
+    # ------------------------------------------------------------------
+    # Velocities
+    # ------------------------------------------------------------------
+
+    def velocities(self, Bij, Bi0, P0, pm, u0, um):
+        """
+        Compute link twist vectors via Velocities_C.
+
+        Parameters
+        ----------
+        Bij : (n, n, 6, 6) – from diff_kinematics
+        Bi0 : (n,    6, 6) – from diff_kinematics
+        P0  : (6, 6)       – from diff_kinematics
+        pm  : (6, n)       – from diff_kinematics
+        u0  : (6,)  – base-link generalised velocity [omega; v]
+        um  : (n_q,) – joint velocities
+
+        Returns
+        -------
+        t0 : (6,)    – base-link twist
+        tL : (6, n)  – link twist matrix
+        """
+        lib = _get_spart_lib()
+        n   = self._robot.n_links_joints
+        _pd = ctypes.POINTER(ctypes.c_double)
+
+        c_bij = _pack_bij(Bij, n)
+        c_bi0 = _pack_bi0(Bi0, n)
+        emx_Bij = self._make_emx_cw1_wrap(lib, c_bij, n, n)
+        emx_Bi0 = self._make_emx_cw1_wrap(lib, c_bi0, n, 1)
+
+        P0_c = np.asarray(P0, dtype=np.float64, order='F').flatten(order='F')
+        P0_ptr = P0_c.ctypes.data_as(_pd)
+
+        emx_pm, _pm = self._make_emx_real_wrap(lib, pm)
+
+        u0_c  = np.asarray(u0, dtype=np.float64).flatten()
+        u0_ptr = u0_c.ctypes.data_as(_pd)
+        emx_um, _um = self._make_emx_real_wrap(lib, np.asarray(um, dtype=np.float64).flatten())
+        emx_joints = self._make_emx_joints(lib)
+
+        t0_c  = (ctypes.c_double * 6)()
+        emx_tL = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+
+        lib.Velocities_C(
+            emx_Bij, emx_Bi0,
+            P0_ptr, emx_pm,
+            u0_ptr, emx_um,
+            ctypes.c_double(n), emx_joints,
+            t0_c, emx_tL)
+
+        t0 = np.array(t0_c, dtype=np.float64)
+        tL = _read_emx(emx_tL)
+
+        lib.emxDestroyArray_cell_wrap_1(emx_Bij)
+        lib.emxDestroyArray_cell_wrap_1(emx_Bi0)
+        lib.emxDestroyArray_real_T(emx_pm)
+        lib.emxDestroyArray_real_T(emx_um)
+        lib.emxDestroyArray_real_T(emx_tL)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+
+        return t0, tL
+
+    # ------------------------------------------------------------------
+    # Accelerations
+    # ------------------------------------------------------------------
+
+    def accelerations(self, t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot):
+        """
+        Compute link twist-rate vectors via Accelerations_C.
+
+        Parameters
+        ----------
+        t0    : (6,)    – base-link twist        (from velocities)
+        tL    : (6, n)  – link twists            (from velocities)
+        P0    : (6, 6)  – base motion subspace   (from diff_kinematics)
+        pm    : (6, n)  – joint motion subspace  (from diff_kinematics)
+        Bi0   : (n,    6, 6) – from diff_kinematics
+        Bij   : (n, n, 6, 6) – from diff_kinematics
+        u0    : (6,)    – base generalised velocity
+        um    : (n_q,)  – joint velocities
+        u0dot : (6,)    – base generalised acceleration
+        umdot : (n_q,)  – joint accelerations
+
+        Returns
+        -------
+        t0dot : (6,)    – base-link twist rate
+        tLdot : (6, n)  – link twist-rate matrix
+        """
+        lib = _get_spart_lib()
+        n   = self._robot.n_links_joints
+        _pd = ctypes.POINTER(ctypes.c_double)
+
+        def _fp(arr):
+            a = np.asarray(arr, dtype=np.float64).flatten()
+            return a.ctypes.data_as(_pd), a
+
+        t0_ptr,    _t0    = _fp(t0)
+        u0_ptr,    _u0    = _fp(u0)
+        u0dot_ptr, _u0dot = _fp(u0dot)
+        P0_ptr,    _P0    = _fp(np.asarray(P0, dtype=np.float64, order='F').flatten(order='F'))
+
+        emx_tL,   _tL   = self._make_emx_real_wrap(lib, tL)
+        emx_pm,   _pmc  = self._make_emx_real_wrap(lib, pm)
+        emx_um,   _umc  = self._make_emx_real_wrap(lib, np.asarray(um,    dtype=np.float64).flatten())
+        emx_umdot, _umd = self._make_emx_real_wrap(lib, np.asarray(umdot, dtype=np.float64).flatten())
+
+        c_bij = _pack_bij(Bij, n);  emx_Bij = self._make_emx_cw1_wrap(lib, c_bij, n, n)
+        c_bi0 = _pack_bi0(Bi0, n);  emx_Bi0 = self._make_emx_cw1_wrap(lib, c_bi0, n, 1)
+        emx_joints = self._make_emx_joints(lib)
+
+        t0dot_c  = (ctypes.c_double * 6)()
+        emx_tLdot = lib.emxCreate_real_T(ctypes.c_int(0), ctypes.c_int(0))
+
+        lib.Accelerations_C(
+            t0_ptr, emx_tL,
+            P0_ptr, emx_pm,
+            emx_Bi0, emx_Bij,
+            u0_ptr, emx_um,
+            u0dot_ptr, emx_umdot,
+            ctypes.c_double(n), emx_joints,
+            t0dot_c, emx_tLdot)
+
+        t0dot = np.array(t0dot_c, dtype=np.float64)
+        tLdot = _read_emx(emx_tLdot)
+
+        lib.emxDestroyArray_cell_wrap_1(emx_Bij); lib.emxDestroyArray_cell_wrap_1(emx_Bi0)
+        lib.emxDestroyArray_real_T(emx_tL);   lib.emxDestroyArray_real_T(emx_pm)
+        lib.emxDestroyArray_real_T(emx_um);   lib.emxDestroyArray_real_T(emx_umdot)
+        lib.emxDestroyArray_real_T(emx_tLdot)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+
+        return t0dot, tLdot
+
+    # ------------------------------------------------------------------
+    # Inertia in inertial frame
+    # ------------------------------------------------------------------
+
+    def i_i(self, R0_body2I, RL):
+        """
+        Compute inertia tensors expressed in the inertial frame via I_I_C.
+
+        Parameters
+        ----------
+        R0_body2I : (3,3)
+            Active rotation from the base-link body CCS to the inertial CCS.
+            Maps body-frame vectors to the inertial frame:
+                V_I = R0_body2I @ V_B
+            Used to project the body-frame inertia tensor via:
+                I0_inertial = R0_body2I @ I0_body @ R0_body2I.T
+            NOTE: this is the BODY->INERTIAL rotation.  If your state vector
+            stores R0_I2body (the inertial->body rotation used in the ODE),
+            pass its transpose here: ``R0_body2I = R0_I2body.T``.
+        RL : (3, 3*n) – link rotation matrices (body-to-inertial, from kinematics)
+
+        Returns
+        -------
+        I0 : (3,3)    – base-link inertia in inertial frame
+        Im : (n, 3,3) – per-link inertia tensors in inertial frame
+        """
+        lib  = _get_spart_lib()
+        n    = self._robot.n_links_joints
+        _pd  = ctypes.POINTER(ctypes.c_double)
+
+        R0_c   = np.asarray(R0_body2I, dtype=np.float64, order='F').flatten(order='F')
+        R0_ptr = R0_c.ctypes.data_as(_pd)
+
+        base_I_c = np.asarray(self._robot.base_link_inertia, dtype=np.float64, order='F').flatten(order='F')
+        base_I_ptr = base_I_c.ctypes.data_as(_pd)
+
+        emx_RL, _RL = self._make_emx_real_wrap(lib, RL)
+        emx_links   = self._make_emx_links(lib)
+
+        I0_c   = (ctypes.c_double * 9)()
+        emx_Im = lib.emxCreate_cell_wrap_2(ctypes.c_int(0), ctypes.c_int(0))
+
+        lib.I_I_C(
+            R0_ptr, emx_RL,
+            ctypes.c_double(n),
+            base_I_ptr, emx_links,
+            I0_c, emx_Im)
+
+        I0 = np.array(I0_c, dtype=np.float64).reshape(3, 3, order='F')
+        Im = _read_emx_cw2(emx_Im)
+
+        lib.emxDestroyArray_real_T(emx_RL)
+        lib.emxDestroyArray_struct1_T(emx_links)
+        lib.emxDestroyArray_cell_wrap_2(emx_Im)
+
+        return I0, Im
+
+    # ------------------------------------------------------------------
+    # Inverse Dynamics
+    # ------------------------------------------------------------------
+
+    def inverse_dynamics(self, wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0):
+        """
+        Compute generalised forces via ID_C (inverse dynamics).
+
+        Parameters
+        ----------
+        wF0   : (6,)    – external wrench on base
+        wFm   : (6, n)  – external wrenches on links
+        t0    : (6,)    – base twist
+        tL    : (6, n)  – link twists
+        t0dot : (6,)    – base twist rate
+        tLdot : (6, n)  – link twist rates
+        P0    : (6, 6)  – base motion subspace
+        pm    : (6, n)  – joint motion subspace
+        I0    : (3,3)   – base inertia in inertial frame
+        Im    : (n,3,3) – link inertias in inertial frame
+        Bij   : (n,n,6,6)
+        Bi0   : (n,6,6)
+
+        Returns
+        -------
+        tau0 : (6,)    – base generalised force
+        taum : (n_q,)  – joint torques
+        """
+        lib = _get_spart_lib()
+        n   = self._robot.n_links_joints
+        _pd = ctypes.POINTER(ctypes.c_double)
+
+        def _fp(arr):
+            a = np.asarray(arr, dtype=np.float64, order='F').flatten(order='F')
+            return a.ctypes.data_as(_pd), a
+
+        wF0_ptr, _wF0 = _fp(wF0)
+        t0_ptr,  _t0  = _fp(t0)
+        t0d_ptr, _t0d = _fp(t0dot)
+        P0_ptr,  _P0  = _fp(P0)
+        I0_ptr,  _I0  = _fp(I0)
+
+        emx_wFm,  _wFm  = self._make_emx_real_wrap(lib, wFm)
+        emx_tL,   _tLc  = self._make_emx_real_wrap(lib, tL)
+        emx_tLdot, _tLd = self._make_emx_real_wrap(lib, tLdot)
+        emx_pm,   _pmc  = self._make_emx_real_wrap(lib, pm)
+
+        c_im  = _pack_im(Im, n);   emx_Im  = self._make_emx_cw2_wrap(lib, c_im, n)
+        c_bij = _pack_bij(Bij, n); emx_Bij = self._make_emx_cw1_wrap(lib, c_bij, n, n)
+        c_bi0 = _pack_bi0(Bi0, n); emx_Bi0 = self._make_emx_cw1_wrap(lib, c_bi0, n, 1)
+
+        emx_cc,  _cc  = self._make_emx_real_wrap(lib, self._c_con_child)
+        emx_ccb, _ccb = self._make_emx_real_wrap(lib, self._c_con_cb)
+        emx_joints    = self._make_emx_joints(lib)
+        emx_links     = self._make_emx_links(lib)
+
+        tau0_c  = (ctypes.c_double * 6)()
+        _taum_sz = (ctypes.c_int * 1)(0)
+        emx_taum = lib.emxCreateND_real_T(ctypes.c_int(1), _taum_sz)
+
+        lib.ID_C(
+            wF0_ptr, emx_wFm,
+            t0_ptr,  emx_tL,
+            t0d_ptr, emx_tLdot,
+            P0_ptr,  emx_pm,
+            I0_ptr,  emx_Im,
+            emx_Bij, emx_Bi0,
+            ctypes.c_double(n), ctypes.c_double(self._robot.n_q),
+            ctypes.cast(ctypes.addressof(self._c_base_link), ctypes.c_void_p),
+            emx_links,
+            emx_cc, emx_ccb,
+            emx_joints,
+            tau0_c, emx_taum)
+
+        tau0 = np.array(tau0_c, dtype=np.float64)
+        taum = _read_emx(emx_taum).flatten()
+
+        lib.emxDestroyArray_real_T(emx_wFm);  lib.emxDestroyArray_real_T(emx_tL)
+        lib.emxDestroyArray_real_T(emx_tLdot); lib.emxDestroyArray_real_T(emx_pm)
+        lib.emxDestroyArray_cell_wrap_2(emx_Im)
+        lib.emxDestroyArray_cell_wrap_1(emx_Bij); lib.emxDestroyArray_cell_wrap_1(emx_Bi0)
+        lib.emxDestroyArray_real_T(emx_cc);  lib.emxDestroyArray_real_T(emx_ccb)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+        lib.emxDestroyArray_struct1_T(emx_links)
+        lib.emxDestroyArray_real_T(emx_taum)
+
+        return tau0, taum
+
+    # ------------------------------------------------------------------
+    # Forward Dynamics
+    # ------------------------------------------------------------------
+
+    def forward_dynamics(self, tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um):
+        """
+        Compute generalised accelerations via FD_C (forward dynamics).
+
+        Parameters
+        ----------
+        tau0 : (6,)    – base generalised force
+        taum : (n_q,)  – joint torques
+        wF0  : (6,)    – external wrench on base
+        wFm  : (6, n)  – external wrenches on links
+        t0   : (6,)    – base twist
+        tL   : (6, n)  – link twists
+        P0   : (6, 6)  – base motion subspace
+        pm   : (6, n)  – joint motion subspace
+        I0   : (3,3)   – base inertia in inertial frame
+        Im   : (n,3,3) – link inertias in inertial frame
+        Bij  : (n,n,6,6)
+        Bi0  : (n,6,6)
+        u0   : (6,)    – base generalised velocity
+        um   : (n_q,)  – joint velocities
+
+        Returns
+        -------
+        u0dot  : (6,)    – base generalised acceleration
+        umdot  : (n_q,)  – joint accelerations
+        """
+        lib = _get_spart_lib()
+        n   = self._robot.n_links_joints
+        _pd = ctypes.POINTER(ctypes.c_double)
+
+        def _fp(arr):
+            a = np.asarray(arr, dtype=np.float64, order='F').flatten(order='F')
+            return a.ctypes.data_as(_pd), a
+
+        tau0_ptr, _tau0 = _fp(tau0)
+        wF0_ptr,  _wF0  = _fp(wF0)
+        t0_ptr,   _t0   = _fp(t0)
+        P0_ptr,   _P0   = _fp(P0)
+        I0_ptr,   _I0   = _fp(I0)
+        u0_ptr,   _u0   = _fp(u0)
+
+        emx_taum, _taumc = self._make_emx_real_wrap(lib, np.asarray(taum, dtype=np.float64).flatten())
+        emx_wFm,  _wFm   = self._make_emx_real_wrap(lib, wFm)
+        emx_tL,   _tLc   = self._make_emx_real_wrap(lib, tL)
+        emx_pm,   _pmc   = self._make_emx_real_wrap(lib, pm)
+        emx_um,   _umc   = self._make_emx_real_wrap(lib, np.asarray(um, dtype=np.float64).flatten())
+
+        c_im  = _pack_im(Im, n);   emx_Im  = self._make_emx_cw2_wrap(lib, c_im, n)
+        c_bij = _pack_bij(Bij, n); emx_Bij = self._make_emx_cw1_wrap(lib, c_bij, n, n)
+        c_bi0 = _pack_bi0(Bi0, n); emx_Bi0 = self._make_emx_cw1_wrap(lib, c_bi0, n, 1)
+
+        emx_cc,  _cc  = self._make_emx_real_wrap(lib, self._c_con_child)
+        emx_ccb, _ccb = self._make_emx_real_wrap(lib, self._c_con_cb)
+        emx_joints    = self._make_emx_joints(lib)
+        emx_links     = self._make_emx_links(lib)
+
+        u0dot_c  = (ctypes.c_double * 6)()
+        _umdot_sz = (ctypes.c_int * 1)(0)
+        emx_umdot = lib.emxCreateND_real_T(ctypes.c_int(1), _umdot_sz)
+
+        lib.FD_C(
+            tau0_ptr, emx_taum,
+            wF0_ptr,  emx_wFm,
+            t0_ptr,   emx_tL,
+            P0_ptr,   emx_pm,
+            I0_ptr,   emx_Im,
+            emx_Bij,  emx_Bi0,
+            u0_ptr,   emx_um,
+            ctypes.c_double(n), ctypes.c_double(self._robot.n_q),
+            ctypes.cast(ctypes.addressof(self._c_base_link), ctypes.c_void_p),
+            emx_links,
+            emx_cc, emx_ccb,
+            emx_joints,
+            u0dot_c, emx_umdot)
+
+        u0dot = np.array(u0dot_c, dtype=np.float64)
+        umdot = _read_emx(emx_umdot).flatten()
+
+        lib.emxDestroyArray_real_T(emx_taum); lib.emxDestroyArray_real_T(emx_wFm)
+        lib.emxDestroyArray_real_T(emx_tL);  lib.emxDestroyArray_real_T(emx_pm)
+        lib.emxDestroyArray_real_T(emx_um)
+        lib.emxDestroyArray_cell_wrap_2(emx_Im)
+        lib.emxDestroyArray_cell_wrap_1(emx_Bij); lib.emxDestroyArray_cell_wrap_1(emx_Bi0)
+        lib.emxDestroyArray_real_T(emx_cc);  lib.emxDestroyArray_real_T(emx_ccb)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+        lib.emxDestroyArray_struct1_T(emx_links)
+        lib.emxDestroyArray_real_T(emx_umdot)
+
+        return u0dot, umdot
+    
+    # ------------------------------------------------------------------
+    # Space-Robot ODE input generation R0_I2body, r0, ... -> y, tau
+    # ------------------------------------------------------------------
+    def space_robot_ode_input(self, t, R0_I2body, r0, u0, qm, um, tau0, taum):
+        """
+        Pack the robot state into the ODE state vector ``y`` and control vector ``tau``.
+
+        Rotation convention
+        -------------------
+        ``R0_I2body`` must be the **active rotation from the inertial to the
+        base-link body CCS**::
+
+            V_B = R0_I2body @ V_I
+
+        This is the rotation that is integrated by the ODE (its derivative is
+        ``R0_I2body_dot = -skew(omega_B) @ R0_I2body``).  It equals the
+        **transpose** of the body->inertial rotation expected by the core SPART
+        functions (Kinematics, DiffKinematics, I_I, FD)::
+
+            R0_I2body = R0_body2I.T
+
+        Parameters
+        ----------
+        t        : float   – current time
+        R0_I2body : (3,3)  – active inertial->body rotation (see above)
+        r0       : (3,)    – base CoM position in inertial frame
+        u0       : (6,)    – base generalised velocity [omega_body(3); r0_dot(3)]
+        qm       : (n_q,)  – joint angles
+        um       : (n_q,)  – joint velocities
+        tau0     : (6,)    – base generalised forces
+        taum     : (n_q,)  – joint torques
+
+        Returns
+        -------
+        t, y_ode, tau_ode  – ready to unpack into ``space_robot_ode``
+        """
+        if not self._ode_input_checked:
+            nq = self._robot.n_q
+            R0_arr  = np.asarray(R0_I2body)
+            r0_arr  = np.asarray(r0).flatten()
+            u0_arr  = np.asarray(u0).flatten()
+            qm_arr  = np.asarray(qm).flatten()
+            um_arr  = np.asarray(um).flatten()
+            tau0_arr = np.asarray(tau0).flatten()
+            taum_arr = np.asarray(taum).flatten()
+
+            if R0_arr.shape != (3, 3):
+                raise ValueError(f"R0_I2body must be (3, 3), got {R0_arr.shape}")
+            if r0_arr.shape != (3,):
+                raise ValueError(f"r0 must have 3 elements, got {r0_arr.shape}")
+            if u0_arr.shape != (6,):
+                raise ValueError(f"u0 must have 6 elements [w0(3); r0_dot(3)], got {u0_arr.shape}")
+            if qm_arr.shape != (nq,):
+                raise ValueError(f"qm must have {nq} elements (n_q), got {qm_arr.shape}")
+            if um_arr.shape != (nq,):
+                raise ValueError(f"um must have {nq} elements (n_q), got {um_arr.shape}")
+            if tau0_arr.shape != (6,):
+                raise ValueError(f"tau0 must have 6 elements, got {tau0_arr.shape}")
+            if taum_arr.shape != (nq,):
+                raise ValueError(f"taum must have {nq} elements (n_q), got {taum_arr.shape}")
+
+            self._ode_input_checked = True
+
+        y_ode = np.concatenate([                        # handles both (N,) and (N,1)
+            np.asarray(R0_I2body).flatten(order='F'),  # R0_I2body packed col-major
+            np.asarray(r0).ravel(), # ravel() makes vectors of (N,) dimension into (N,1) to avoid errors
+            np.asarray(u0).ravel(),
+            np.asarray(qm).ravel(),
+            np.asarray(um).ravel(),
+        ])
+        tau_ode = np.concatenate([np.asarray(tau0).ravel(), np.asarray(taum).ravel()])
+        
+        return t, y_ode, tau_ode
+    
+    # ------------------------------------------------------------------
+    # Space-Robot ODE output generation (dtdy -> R0_dot, r0_dot, ...)
+    # ------------------------------------------------------------------
+    # def space_robot_ode_output(self, yy, tt ):
+        # TODO: unpack output from integration
+        # return RR0, rr0, uu0, qqm, uum
+        
+    # ------------------------------------------------------------------
+    # Space-Robot ODE
+    # ------------------------------------------------------------------
+
+    def space_robot_ode(self, t, y, tau):
+        """
+        Compute the ODE time derivative for a free-floating space robot.
+
+        Rotation convention
+        -------------------
+        The first 9 elements of the state vector ``y`` store ``R0_I2body``
+        flattened in column-major order.  ``R0_I2body`` is the **active
+        rotation from the inertial to the base-link body CCS**::
+
+            V_B = R0_I2body @ V_I
+
+        Internally it is transposed to ``R0_body2I = R0_I2body.T`` before
+        being forwarded to the core SPART functions (Kinematics, DiffKinematics,
+        I_I, FD), which all expect the BODY->INERTIAL active rotation::
+
+            V_I = R0_body2I @ V_B
+
+        State layout
+        ------------
+        The state vector ``y`` is laid out as::
+
+            y = [R0_I2body_flat(9, col-major); r0(3); w0_body(3); r0_dot(3); qm(nQ); qm_dot(nQ)]
+
+        total length = 18 + 2*nQ.
+
+        Parameters
+        ----------
+        t   : float
+            Current simulation time.
+        y   : (18 + 2*nQ,) array
+            State vector as described above.
+        tau : (6 + nQ,) array
+            Generalised forces: ``[tau0(6); taum(nQ)]``.
+
+        Returns
+        -------
+        dydt : (18 + 2*nQ,) array
+            Time derivative of the state vector.
+        """
+        lib = _get_spart_lib()
+        n   = self._robot.n_links_joints
+        nq  = self._robot.n_q
+        _pd = ctypes.POINTER(ctypes.c_double)
+
+        y_c   = np.asarray(y,   dtype=np.float64).flatten()
+        tau_c = np.asarray(tau, dtype=np.float64).flatten()
+
+        emx_y,   _yc   = self._make_emx_real_wrap(lib, y_c)
+        emx_tau, _tauc = self._make_emx_real_wrap(lib, tau_c)
+
+        base_I_c   = np.asarray(self._robot.base_link_inertia,
+                                dtype=np.float64, order='F').flatten(order='F')
+        base_I_ptr = base_I_c.ctypes.data_as(_pd)
+
+        emx_cb,  _cb  = self._make_emx_real_wrap(lib, self._c_con_branch)
+        emx_cc,  _cc  = self._make_emx_real_wrap(lib, self._c_con_child)
+        emx_ccb, _ccb = self._make_emx_real_wrap(lib, self._c_con_cb)
+        emx_joints    = self._make_emx_joints(lib)
+        emx_links     = self._make_emx_links(lib)
+
+        _dydt_sz = (ctypes.c_int * 1)(0)
+        emx_dydt = lib.emxCreateND_real_T(ctypes.c_int(1), _dydt_sz)
+
+        lib.SPART_SPACEROBOT_ODE_C(
+            ctypes.c_ulong(int(t)),
+            emx_y,
+            emx_tau,
+            ctypes.c_double(n),
+            emx_joints,
+            emx_links,
+            emx_cb,
+            base_I_ptr,
+            ctypes.c_double(nq),
+            ctypes.cast(ctypes.addressof(self._c_base_link), ctypes.c_void_p),
+            emx_cc,
+            emx_ccb,
+            emx_dydt)
+
+        dydt = _read_emx(emx_dydt).flatten()
+
+        lib.emxDestroyArray_real_T(emx_y)
+        lib.emxDestroyArray_real_T(emx_tau)
+        lib.emxDestroyArray_real_T(emx_cb)
+        lib.emxDestroyArray_real_T(emx_cc)
+        lib.emxDestroyArray_real_T(emx_ccb)
+        lib.emxDestroyArray_struct0_T(emx_joints)
+        lib.emxDestroyArray_struct1_T(emx_links)
+        lib.emxDestroyArray_real_T(emx_dydt)
+
+        return dydt
+
+    def benchmark(self, n_runs=1000, R0_body2I=None, r0=None, qm=None,
+                  u0=None, um=None, u0dot=None, umdot=None,
+                  wF0=None, wFm=None, tau0=None, taum=None):
+        """
+        Time each SPART function over ``n_runs`` iterations and print a summary.
+
+        Default inputs are zeros (identity rotation for R0_body2I) unless supplied.
+
+        Parameters
+        ----------
+        n_runs : int
+            Number of repetitions per function (default 1000).
+        R0_body2I : (3,3) array-like, optional
+            Active body->inertial rotation (default: identity).
+        r0, qm, u0, um, u0dot, umdot, wF0, wFm, tau0, taum : array-like, optional
+            Override the default zero inputs.
+        """
+        import timeit as _timeit
+
+        nq = self._robot.n_q
+        n  = self._robot.n_links_joints
+
+        # --- Default inputs ---
+        if R0_body2I is None: R0_body2I = np.eye(3)
+        if r0    is None: r0    = np.zeros(3)
+        if qm    is None: qm    = np.zeros(nq)
+        if u0    is None: u0    = np.zeros(6)
+        if um    is None: um    = np.zeros(nq)
+        if u0dot is None: u0dot = np.zeros(6)
+        if umdot is None: umdot = np.zeros(nq)
+        if wF0   is None: wF0   = np.zeros(6)
+        if wFm   is None: wFm   = np.zeros((6, n))
+        if tau0  is None: tau0  = np.zeros(6)
+        if taum  is None: taum  = np.zeros(nq)
+
+        results = {}
+
+        # 1. kinematics
+        def _run_kin():
+            return self.kinematics(R0_body2I, r0, qm)
+        t = _timeit.timeit(_run_kin, number=n_runs)
+        results['kinematics'] = t
+        RJ, RL, rJ, rL, e, g = _run_kin()
+
+        # 2. diff_kinematics
+        def _run_dk():
+            return self.diff_kinematics(R0_body2I, r0, rL, e, g)
+        t = _timeit.timeit(_run_dk, number=n_runs)
+        results['diff_kinematics'] = t
+        Bij, Bi0, P0, pm = _run_dk()
+
+        # 3. velocities
+        def _run_vel():
+            return self.velocities(Bij, Bi0, P0, pm, u0, um)
+        t = _timeit.timeit(_run_vel, number=n_runs)
+        results['velocities'] = t
+        t0, tL = _run_vel()
+
+        # 4. i_i
+        def _run_ii():
+            return self.i_i(R0_body2I, RL)
+        t = _timeit.timeit(_run_ii, number=n_runs)
+        results['i_i'] = t
+        I0, Im = _run_ii()
+
+        # 5. accelerations
+        def _run_acc():
+            return self.accelerations(t0, tL, P0, pm, Bi0, Bij, u0, um, u0dot, umdot)
+        t = _timeit.timeit(_run_acc, number=n_runs)
+        results['accelerations'] = t
+        t0dot, tLdot = _run_acc()
+
+        # 6. inverse_dynamics
+        def _run_id():
+            return self.inverse_dynamics(wF0, wFm, t0, tL, t0dot, tLdot, P0, pm, I0, Im, Bij, Bi0)
+        t = _timeit.timeit(_run_id, number=n_runs)
+        results['inverse_dynamics'] = t
+
+        # 7. forward_dynamics
+        def _run_fd():
+            return self.forward_dynamics(tau0, taum, wF0, wFm, t0, tL, P0, pm, I0, Im, Bij, Bi0, u0, um)
+        t = _timeit.timeit(_run_fd, number=n_runs)
+        results['forward_dynamics'] = t
+
+        # 8. space_robot_ode
+        # Build the ODE state vector: R0_I2body = R0_body2I.T is packed col-major
+        # y = [R0_I2body_flat(9); r0(3); u0(6); qm(nq); um(nq)]
+        R0_I2body_flat = np.asarray(R0_body2I, dtype=np.float64).T.flatten(order='F')
+        _y_ode  = np.concatenate([R0_I2body_flat, r0, u0, qm, um])
+        _tau_ode = np.concatenate([tau0, taum])
+        def _run_ode():
+            return self.space_robot_ode(0.0, _y_ode, _tau_ode)
+        t = _timeit.timeit(_run_ode, number=n_runs)
+        results['space_robot_ode'] = t
+
+        # --- Print table ---
+        col_w = 20
+        print(f"\nBenchmark — {n_runs} runs each  ({self._robot.name})")
+        print("─" * 52)
+        print(f"{'Function':<{col_w}}  {'Total (s)':>10}  {'Per call (µs)':>14}")
+        print("─" * 52)
+        for name, total in results.items():
+            per_call_us = total / n_runs * 1e6
+            print(f"{name:<{col_w}}  {total:>10.4f}  {per_call_us:>12.1f} µs")
+        print("─" * 52)
+        total_all = sum(results.values())
+        print(f"{'TOTAL (pipeline)':<{col_w}}  {total_all:>10.4f}  {total_all/n_runs*1e6:>12.1f} µs")
+        print()
+
+    # ------------------------------------------------------------------
+    # Trajectory animation
+    # ------------------------------------------------------------------
+
+    def animate_trajectory(self, t_arr, y_arr, fps=30, save_path=None,
+                           backend='matplotlib'):
+        """
+        Animate a free-floating space-robot trajectory.
+
+        Parameters
+        ----------
+        t_arr     : (N,) array of time stamps.
+        y_arr     : (N, 18+2*nq) state matrix; each row is one ODE state vector
+                    in the layout produced by ``space_robot_ode_input``::
+
+                        [R0_I2body_flat(9,col-major); r0(3); u0(6); qm(nq); qm_dot(nq)]
+
+        fps       : int, playback frame-rate (default 30).
+        save_path : str or None.  If given (e.g. ``'traj.gif'`` or ``'traj.mp4'``)
+                    the animation is saved instead of displayed interactively.
+                    Only supported for ``backend='matplotlib'``.
+                    Requires *ffmpeg* (mp4) or *Pillow* (gif) to be installed.
+        backend   : ``'matplotlib'`` (default), ``'yourdfpy'``, or ``'both'``.
+                    ``'yourdfpy'`` opens a full 3-D mesh viewer via trimesh/pyglet
+                    and requires a URDF path to have been set when the robot was
+                    loaded (i.e. ``SPART(urdf_path)``).  It cannot save to file.
+                    ``'both'`` opens both windows simultaneously: matplotlib runs
+                    in a daemon thread while yourdfpy runs on the main thread.
+
+        Returns
+        -------
+        anim : matplotlib.animation.FuncAnimation  (only for ``backend='matplotlib'``)
+                None for ``backend='yourdfpy'`` or ``backend='both'``.
+        """
+        if backend == 'yourdfpy':
+            return self._animate_trajectory_yourdfpy(t_arr, y_arr, fps)
+        elif backend == 'both':
+            return self._animate_trajectory_both(t_arr, y_arr, fps)
+        elif backend != 'matplotlib':
+            raise ValueError(
+                f"Unknown backend '{backend}'. "
+                "Choose 'matplotlib', 'yourdfpy', or 'both'.")
+        import matplotlib.pyplot as plt
+
+        fig, anim = self._build_matplotlib_animation(t_arr, y_arr, fps)
+
+        if save_path is not None:
+            ext = os.path.splitext(save_path)[-1].lower()
+            writer = 'ffmpeg' if ext == '.mp4' else 'pillow'
+            anim.save(save_path, writer=writer, fps=fps)
+            print(f"[animate_trajectory] Saved to {save_path}")
+        else:
+            plt.tight_layout()
+            plt.show()
+
+        return anim
+
+    def _build_matplotlib_animation(self, t_arr, y_arr, fps=30):
+        """
+        Build (but do not show) the matplotlib FuncAnimation.
+
+        Returns
+        -------
+        fig  : matplotlib Figure
+        anim : FuncAnimation
+        """
+        import matplotlib.animation as animation
+
+        fig, draw_frame = self._setup_matplotlib_artists(t_arr, y_arr)
+        N = len(np.asarray(t_arr).ravel())
+        interval_ms = int(1000 / fps)
+        anim = animation.FuncAnimation(
+            fig, draw_frame, frames=N, interval=interval_ms, blit=False)
+        return fig, anim
+
+    def _setup_matplotlib_artists(self, t_arr, y_arr):
+        """
+        Build the matplotlib figure and all artists for the trajectory.
+        Returns ``(fig, draw_frame)`` where ``draw_frame(k)`` updates all
+        artists to frame *k* and returns them (suitable for FuncAnimation
+        OR for calling directly from any event loop).
+        """
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+        nq      = self._robot.n_q
+        n       = self._robot.n_links_joints
+        t_arr   = np.asarray(t_arr).ravel()
+        y_arr   = np.asarray(y_arr)
+        N       = len(t_arr)
+
+        # --- box half-extents for the spacecraft body ---
+        half = None
+        if self._urdf_path is not None:
+            half = _parse_base_box_halfextents(self._urdf_path)
+        if half is None:
+            half = np.array([1.0, 1.0, 1.0])   # fallback unit box
+
+        # --- pre-compute link/joint positions for every frame ---
+        rJ_all = np.empty((N, 3, n))
+        rL_all = np.empty((N, 3, n))
+        r0_all = np.empty((N, 3))
+
+        for k in range(N):
+            y           = y_arr[k]
+            R0_I2body_k = y[0:9].reshape(3, 3, order='F')
+            R0_k        = R0_I2body_k.T   # R0_body2I — what kinematics() expects
+            r0_k        = y[9:12]
+            qm_k        = y[18:18 + nq]
+            _, RL_k, rJ_k, rL_k, e_k, g_k = self.kinematics(R0_k, r0_k, qm_k)
+            rJ_all[k] = rJ_k
+            rL_all[k] = rL_k
+            r0_all[k] = r0_k
+
+        # --- axis limits: pad around entire trajectory incl. box corners ---
+        box_extent = np.linalg.norm(half)
+        all_pts = np.concatenate(
+            [r0_all, rJ_all.reshape(-1, 3), rL_all.reshape(-1, 3)], axis=0)
+        margin = 0.5 + box_extent
+        lims = [(all_pts[:, i].min() - margin, all_pts[:, i].max() + margin)
+                for i in range(3)]
+
+        # --- build figure ---
+        fig = plt.figure(figsize=(9, 7))
+        ax  = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('X [m]'); ax.set_ylabel('Y [m]'); ax.set_zlabel('Z [m]')
+        ax.set_xlim(*lims[0]); ax.set_ylim(*lims[1]); ax.set_zlim(*lims[2])
+        title = ax.set_title('')
+
+        # spacecraft body: wireframe box (Line3DCollection, updated each frame)
+        box_coll = Line3DCollection(
+            _box_segments(half, np.eye(3), np.zeros(3)),
+            colors='dimgrey', linewidths=1.2, alpha=0.7, label='spacecraft body')
+        ax.add_collection3d(box_coll)
+
+        # orientation arrows: unit-length from r0 along each principal axis
+        quiv_scale = float(np.max(half) * 0.6)
+        qax = [ax.quiver(0, 0, 0, 1, 0, 0, color=c,
+                         length=quiv_scale, normalize=True)
+               for c in ('r', 'g', 'b')]
+
+        # arm skeleton: r0 → joint chain, plus link CoM markers
+        skeleton, = ax.plot([], [], [], 'o-', color='steelblue',
+                            linewidth=2, markersize=5, label='joints')
+        com_pts,  = ax.plot([], [], [], 's', color='orange',
+                            markersize=6, label='link CoM')
+
+        ax.legend(loc='upper left', fontsize=8)
+
+        def draw_frame(k):
+            r0 = r0_all[k]
+            R0 = y_arr[k, 0:9].reshape(3, 3, order='F').T  # R0_body2I
+            rJ = rJ_all[k]
+            rL = rL_all[k]
+
+            box_coll.set_segments(_box_segments(half, R0, r0))
+
+            for q in qax:
+                q.remove()
+            qax[0] = ax.quiver(*r0, *R0[:, 0], color='r',
+                               length=quiv_scale, normalize=True)
+            qax[1] = ax.quiver(*r0, *R0[:, 1], color='g',
+                               length=quiv_scale, normalize=True)
+            qax[2] = ax.quiver(*r0, *R0[:, 2], color='b',
+                               length=quiv_scale, normalize=True)
+
+            xs = np.concatenate([[r0[0]], rJ[0]])
+            ys = np.concatenate([[r0[1]], rJ[1]])
+            zs = np.concatenate([[r0[2]], rJ[2]])
+            skeleton.set_data_3d(xs, ys, zs)
+
+            com_pts.set_data_3d(rL[0], rL[1], rL[2])
+
+            title.set_text(f't = {t_arr[k]:.3f} s')
+            return box_coll, skeleton, com_pts, title
+
+        return fig, draw_frame
+
+    def _animate_trajectory_both(self, t_arr, y_arr, fps=30):
+        """
+        Open both the matplotlib and yourdfpy viewers side-by-side.
+
+        Both are driven from the yourdfpy (pyglet) callback on the main thread.
+        The yourdfpy callback fires every frame; inside it we also call the
+        matplotlib draw function and flush its canvas — no threading needed.
+        """
+        import matplotlib.pyplot as plt
+        import time
+
+        # Build matplotlib artists (no FuncAnimation, no show yet)
+        fig, draw_frame = self._setup_matplotlib_artists(t_arr, y_arr)
+        plt.tight_layout()
+        plt.show(block=False)
+        plt.pause(0.1)   # let the window appear before pyglet initialises
+
+        # --- yourdfpy setup (duplicates _animate_trajectory_yourdfpy logic
+        #     so we can intercept the callback) ---
+        if self._urdf_path is None:
+            raise RuntimeError(
+                "_urdf_path is not set. Load the robot from a URDF file "
+                "to use backend='both'.")
+        try:
+            from yourdfpy import URDF as _URDF
+        except ImportError:
+            raise ImportError("yourdfpy is required for backend='both'. "
+                              "Install it with: pip install yourdfpy")
+
+        nq    = self._robot.n_q
+        t_arr = np.asarray(t_arr).ravel()
+        y_arr = np.asarray(y_arr)
+        N     = len(t_arr)
+        T_sim = float(t_arr[-1] - t_arr[0])
+
+        yd_robot  = _URDF.load(self._urdf_path)
+        scene     = yd_robot._scene
+        base_link = yd_robot.base_link
+        scene.graph.update(frame_from='world', frame_to=base_link, matrix=np.eye(4))
+        scene.graph.base_frame = 'world'
+
+        # Add an RGB axis indicator sized to the spacecraft body
+        import trimesh as _trimesh
+        _half = _parse_base_box_halfextents(self._urdf_path)
+        if _half is None:
+            _half = np.array([1.0, 1.0, 1.0])
+        _axis_len = float(np.max(_half) * 0.8)
+        _axis_geom = _trimesh.creation.axis(
+            origin_size=_axis_len * 0.05,
+            axis_radius=_axis_len * 0.025,
+            axis_length=_axis_len,
+        )
+        scene.add_geometry(
+            _axis_geom,
+            geom_name='_base_axes',
+            node_name='_base_axes_node',
+            parent_node_name='world',
+            transform=np.eye(4),
+        )
+
+        def _T_base(y):
+            R0_body2I = y[0:9].reshape(3, 3, order='F').T  # state stores R0_I2body
+            r0 = y[9:12]
+            T  = np.eye(4); T[:3, :3] = R0_body2I; T[:3, 3] = r0
+            return T
+
+        state = {'start_wall': None, 'last_frame': -1}
+
+        def _callback(scene):
+            if state['start_wall'] is None:
+                state['start_wall'] = time.perf_counter()
+
+            elapsed = time.perf_counter() - state['start_wall']
+            sim_t   = t_arr[0] + (elapsed % T_sim)
+            k = int(np.searchsorted(t_arr, sim_t, side='left'))
+            k = min(k, N - 1)
+
+            if k == state['last_frame']:
+                return
+            state['last_frame'] = k
+
+            y = y_arr[k]
+            T = _T_base(y)
+
+            # --- update yourdfpy scene ---
+            scene.graph.update(frame_from='world', frame_to=base_link, matrix=T)
+            scene.graph.update(frame_from='world', frame_to='_base_axes_node', matrix=T)
+            yd_robot.update_cfg(y[18:18 + nq])
+
+            # --- update matplotlib (same frame index, same wall-clock driven k) ---
+            if plt.fignum_exists(fig.number):
+                draw_frame(k)
+                fig.canvas.draw_idle()
+                fig.canvas.flush_events()
+
+        print(f"[both] Opening viewers — {N} frames, {T_sim:.2f} s  "
+              f"(close the yourdfpy window to quit)")
+        # Set camera to match matplotlib's default view: elev=30°, azim=-60°
+        _el, _az = np.radians(30), np.radians(-60)
+        _z  = np.array([np.cos(_el)*np.cos(_az), np.cos(_el)*np.sin(_az), np.sin(_el)])
+        _up = np.array([0., 0., 1.])
+        _x  = np.cross(_up, _z);  _x /= np.linalg.norm(_x)
+        _R4 = np.eye(4)
+        _R4[:3, 0] = _x
+        _R4[:3, 1] = np.cross(_z, _x)
+        _R4[:3, 2] = _z
+        scene.camera_transform = scene.camera.look_at(scene.bounds, rotation=_R4)
+        yd_robot.show(callback=_callback)
+        return None
+
+    def _animate_trajectory_yourdfpy(self, t_arr, y_arr, fps=30):
+        """
+        Animate a trajectory using the yourdfpy / trimesh 3-D mesh viewer.
+
+        The trimesh SceneViewer calls ``callback(scene)`` each rendered frame;
+        the callback advances a frame counter driven by wall-clock time so
+        playback runs at approximately ``fps`` regardless of render cost.
+        """
+        if self._urdf_path is None:
+            raise RuntimeError(
+                "_urdf_path is not set. Load the robot from a URDF file "
+                "(e.g. SPART('path/to/robot.urdf')) to use the yourdfpy backend."
+            )
+
+        try:
+            from yourdfpy import URDF as _URDF
+        except ImportError:
+            raise ImportError("yourdfpy is required for backend='yourdfpy'. "
+                              "Install it with: pip install yourdfpy")
+
+        import time
+
+        nq    = self._robot.n_q
+        t_arr = np.asarray(t_arr).ravel()
+        y_arr = np.asarray(y_arr)
+        N     = len(t_arr)
+        T_sim = float(t_arr[-1] - t_arr[0])
+
+        # Load a fresh yourdfpy URDF (its scene graph is kept separate from SPART)
+        yd_robot = _URDF.load(self._urdf_path)
+        scene    = yd_robot._scene
+
+        # Insert a fixed 'world' frame above Chaser_Base so we can translate it
+        base_link = yd_robot.base_link
+        scene.graph.update(frame_from='world', frame_to=base_link, matrix=np.eye(4))
+        scene.graph.base_frame = 'world'
+
+        # Add an RGB axis indicator sized to the spacecraft body
+        import trimesh as _trimesh
+        half = _parse_base_box_halfextents(self._urdf_path)
+        if half is None:
+            half = np.array([1.0, 1.0, 1.0])
+        _axis_len = float(np.max(half) * 0.8)
+        _axis_geom = _trimesh.creation.axis(
+            origin_size=_axis_len * 0.05,
+            axis_radius=_axis_len * 0.025,
+            axis_length=_axis_len,
+        )
+        scene.add_geometry(
+            _axis_geom,
+            geom_name='_base_axes',
+            node_name='_base_axes_node',
+            parent_node_name='world',
+            transform=np.eye(4),
+        )
+
+        # Build the initial base transform from frame 0
+        def _T_base(y):
+            R0_body2I = y[0:9].reshape(3, 3, order='F').T  # state stores R0_I2body
+            r0 = y[9:12]
+            T  = np.eye(4)
+            T[:3, :3] = R0_body2I
+            T[:3,  3] = r0
+            return T
+
+        # Mutable state shared with the closure
+        state = {'start_wall': None, 'last_frame': -1}
+
+        def _callback(scene):
+            # Initialise wall-clock on first call
+            if state['start_wall'] is None:
+                state['start_wall'] = time.perf_counter()
+
+            # Map elapsed wall time → simulation time (looping)
+            elapsed = time.perf_counter() - state['start_wall']
+            sim_t   = t_arr[0] + (elapsed % T_sim)
+            # Find nearest frame index
+            k = int(np.searchsorted(t_arr, sim_t, side='left'))
+            k = min(k, N - 1)
+
+            if k == state['last_frame']:
+                return   # nothing changed
+            state['last_frame'] = k
+
+            y = y_arr[k]
+            T = _T_base(y)
+
+            # Update floating base pose
+            scene.graph.update(frame_from='world', frame_to=base_link, matrix=T)
+
+            # Update axis indicator to match base pose
+            scene.graph.update(frame_from='world', frame_to='_base_axes_node', matrix=T)
+
+            # Update joint angles
+            qm_k = y[18:18 + nq]
+            yd_robot.update_cfg(qm_k)
+
+        print(f"[yourdfpy] Opening viewer — {N} frames, {T_sim:.2f} s  "
+              f"(press Q to close)")
+        # Set camera to match matplotlib's default view: elev=30°, azim=-60°
+        # z_cam = direction from scene centre to camera in world space
+        _el, _az = np.radians(30), np.radians(-60)
+        _z  = np.array([np.cos(_el)*np.cos(_az), np.cos(_el)*np.sin(_az), np.sin(_el)])
+        _up = np.array([0., 0., 1.])
+        _x  = np.cross(_up, _z);  _x /= np.linalg.norm(_x)
+        _R4 = np.eye(4)
+        _R4[:3, 0] = _x
+        _R4[:3, 1] = np.cross(_z, _x)
+        _R4[:3, 2] = _z
+        scene.camera_transform = scene.camera.look_at(scene.bounds, rotation=_R4)
+        yd_robot.show(callback=_callback)
+        return None
+    def __repr__(self):
+        return f"SPART(robot={self._robot!r})"

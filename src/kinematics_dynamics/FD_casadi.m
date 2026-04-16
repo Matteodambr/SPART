@@ -1,6 +1,22 @@
 function [u0dot, umdot] = FD_casadi(tau0, taum, wF0, wFm, t0, tm, P0, pm, I0, Im, Bij, Bi0, u0, um, robot)
 
-n = robot.n_links_joints;
+% Determine if inputs are symbolic (casadi) or numeric
+is_symbolic = isa(tau0, 'casadi.SX') || isa(tau0, 'casadi.MX') || ...
+              isa(taum, 'casadi.SX') || isa(taum, 'casadi.MX') || ...
+              isa(t0,   'casadi.SX') || isa(t0,   'casadi.MX') || ...
+              isa(tm,   'casadi.SX') || isa(tm,   'casadi.MX') || ...
+              isa(P0,   'casadi.SX') || isa(P0,   'casadi.MX') || ...
+              isa(pm,   'casadi.SX') || isa(pm,   'casadi.MX') || ...
+              isa(u0,   'casadi.SX') || isa(u0,   'casadi.MX') || ...
+              isa(um,   'casadi.SX') || isa(um,   'casadi.MX');
+
+if is_symbolic
+    Z = @(varargin) casadi.SX.zeros(varargin{:});
+else
+    Z = @(varargin) zeros(varargin{:});
+end
+
+n   = robot.n_links_joints;
 n_q = robot.n_q;
 
 %=== Inverse Dynamics with zero accelerations ===%
@@ -59,11 +75,11 @@ psi_hat0 = M_hat0 * P0;
 
 %=== eta, phi_hat, phi_tilde ===%
 eta = cell(n, 1);
-phi_hat = casadi.SX.zeros(n,1);
-phi_tilde = casadi.SX.zeros(n_q,1);
+phi_hat = Z(n,1);
+phi_tilde = Z(n_q,1);
 
 for i = n:-1:1
-    eta{i} = casadi.SX.zeros(6,1);
+    eta{i} = Z(6,1);
     for j = 1:n
         if robot.con.child(j, i) ~= 0
             Bij_ji = Bij{j, i};
@@ -78,20 +94,24 @@ for i = n:-1:1
 end
 
 %=== Base-link phi_tilde0 ===%
-eta0 = casadi.SX.zeros(6,1);
+eta0 = Z(6,1);
 for j = 1:n
     if robot.con.child_base(j) ~= 0
         eta0 = eta0 + Bi0{j}' * (psi{j} * phi_hat(j) + eta{j});
     end
 end
 phi_hat0 = phi0 - P0' * eta0;
-phi_tilde0 = solve(P0' * psi_hat0, phi_hat0);  % Better for symbolic safety
+if is_symbolic
+    phi_tilde0 = solve(P0' * psi_hat0, phi_hat0);
+else
+    phi_tilde0 = (P0' * psi_hat0) \ phi_hat0;
+end
 
 u0dot = phi_tilde0;
 
 %=== Forward recursion for manipulator acceleration ===%
 mu = cell(n,1);
-umdot = casadi.SX.zeros(n_q,1);
+umdot = Z(n_q,1);
 
 for i = 1:n
     if robot.joints(i).parent_link == 0
@@ -110,21 +130,5 @@ for i = 1:n
         umdot(robot.joints(i).q_id) = phi_tilde(robot.joints(i).q_id) - psi{i}' * mu{i};
     end
 end
-
-%=== Convert symbolic outputs to numeric if all inputs are numeric ===%
-if ~isa(tau0, 'casadi.SX') && ~isa(taum, 'casadi.SX') && ...
-   ~isa(wF0, 'casadi.SX') && ~isa(wFm, 'casadi.SX') && ...
-   ~isa(t0, 'casadi.SX') && ~isa(tm, 'casadi.SX') && ...
-   ~isa(P0, 'casadi.SX') && ~isa(pm, 'casadi.SX') && ...
-   ~isa(I0, 'casadi.SX') && ~any(cellfun(@(c) isa(c, 'casadi.SX'), Im)) && ...
-   ~any(cellfun(@(c) isa(c, 'casadi.SX'), Bij(:))) && ...
-   ~any(cellfun(@(c) isa(c, 'casadi.SX'), Bi0(:))) && ...
-   ~isa(u0, 'casadi.SX') && ~isa(um, 'casadi.SX')
-
-    % Convert to full numeric output
-    u0dot = full(evalf(u0dot)) ;
-    umdot = full(evalf(umdot)) ;
-end
-
 
 end

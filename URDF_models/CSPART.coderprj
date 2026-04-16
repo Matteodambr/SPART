@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<coderProject client="MatlabCoder" containerVersion="1" createdBy="R2025a" modifiedBy="R2025a">
+  <layers>
+    <layer id="core" version="R2025a">
+      <parts>
+        <part role="testRepository">
+          <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b" version="1.1">
+            <coderapp.internal.core.mfz.TestRepositoryState id="1" type="coderapp.internal.core.mfz.TestRepositoryState"/>
+          </MF0>
+        </part>
+      </parts>
+    </layer>
+    <layer id="interface" version="R2025a">
+      <parts>
+        <part role="mainInterface">
+          <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b" version="1.1">
+            <coderapp.internal.interface.project.Interface id="1" type="coderapp.internal.interface.project.Interface">
+              <SizeConstraints id="2" type="coderapp.internal.interface.project.SizeConstraints">
+                <Value type="coderapp.internal.interface.project.SizeConstraintsValue"/>
+              </SizeConstraints>
+              <Types id="3" type="coderapp.internal.codertype.TypeStore"/>
+            </coderapp.internal.interface.project.Interface>
+          </MF0>
+        </part>
+      </parts>
+    </layer>
+    <layer id="matlabCoder" version="R2025a">
+      <parts>
+        <part role="matlabCoder">
+          <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b" version="1.1">
+            <coderapp.internal.mlc.mfz.MatlabCoderProjectState id="1" type="coderapp.internal.mlc.mfz.MatlabCoderProjectState"/>
+          </MF0>
+        </part>
+        <part role="standaloneConfig">
+          <MF0 packageUris="http://schema.mathworks.com/mf0/coderapp_config_datamodel/R2021a.001 http://schema.mathworks.com/mf0/coderapp_core_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_core_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_form_datamodel/R2020a http://schema.mathworks.com/mf0/coderapp_gpucoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_gpucoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_matlabcoder_proj_dm/R2025a http://schema.mathworks.com/mf0/coderapp_matlabcoder_rt_dm/R2022b http://schema.mathworks.com/mf0/coderapp_types_project_datamodel/R2025a http://schema.mathworks.com/mf0/coderapp_types_runtime_datamodel/R2022b http://schema.mathworks.com/mf0/coderapp_utils_datamodel/R2020a" version="1.1">
+            <coderapp.internal.ext.ConfigStore id="1" type="coderapp.internal.ext.ConfigStore"/>
+          </MF0>
+        </part>
+      </parts>
+    </layer>
+    <layer id="gpuCoder" version="R2025a">
+      <parts/>
+    </layer>
+  </layers>
+</coderProject>

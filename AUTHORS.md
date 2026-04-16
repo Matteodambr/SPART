@@ -1,13 +1,11 @@
-# SPART - Contributors
+## Maintainers (SPARTpy)
 
-## Maintainers
+Matteo D'Ambrosio - matteo.dambrosio@polimi.it
 
-Dr. Josep Virgili Llop - jvirgili@nps.edu
-
-
-
-## Contributors
+## SPART - Contributors
 
 Jerry V. Drew II
 
 Andrew Bradstreet
+
+Dr. Josep Virgili Llop - jvirgili@nps.edu

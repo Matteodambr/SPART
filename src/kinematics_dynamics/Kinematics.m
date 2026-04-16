@@ -1,26 +1,16 @@
-function [RJ,RL,rJ,rL,e,g]=Kinematics(R0,r0,qm,robot)
-
-% NOTE!!!!! THE R0 MATRIX INPUTTED MUST BE THE ONE BODY -> INERTIAL, NOT THE TYPICAL INERTIAL -> BODY!
-
-
-
-
-
-
-
-
-
-
+function [RJ,RL,rJ,rL,e,g]=Kinematics(R0_body2I,r0,qm,robot)
 % Computes the kinematics -- positions and orientations -- of the multibody system.
 %
-% [RJ,RL,rJ,rL,e,g]=Kinematics(R0,r0,qm,robot)
+% [RJ,RL,rJ,rL,e,g]=Kinematics(R0_body2I,r0,qm,robot)
 %
 % :parameters: 
-%   * R0 -- Rotation matrix from the base-link CCS to the inertial CCS -- [3x3].
+%   * R0_body2I -- Active rotation from the base-link body CCS to the inertial CCS [3x3].
+%                  V_I = R0_body2I * V_B  (maps body-frame vectors to the inertial frame).
+%                  NOTE: This is the BODY->INERTIAL active rotation, i.e. the transpose of
+%                  the inertial->body rotation stored in the ODE state vector.
 %   * r0 -- Position of the base-link center-of-mass with respect to the origin of the inertial frame, projected in the inertial CCS -- [3x1].
 %   * qm -- Displacements of the active joints -- [n_qx1].
-%   * robot -- Robot model (see :doc:`/Tutorial_Robot`).
-%
+%   * robot -- Robot model (see :doc:/Tutorial_Robot).
 % :return: 
 %   * RJ -- Joints CCS 3x3 rotation matrices with respect to the inertial CCS  -- as a [3x3xn] matrix.
 %   * RL -- Links CCS 3x3 rotation matrices with respect to the inertial CCS -- as a [3x3xn] matrix.
@@ -64,11 +54,11 @@ n=robot.n_links_joints;
 %--- Homogeneous transformation matrices ---%
 
 %Pre-allocate homogeneous transformations matrices
-TJ=zeros(4,4,n,'like',R0);
-TL=zeros(4,4,n,'like',R0);
+TJ=zeros(4,4,n,'like',R0_body2I);
+TL=zeros(4,4,n,'like',R0_body2I);
 
 %--- Base-link ---%
-T0=[R0,r0;zeros(1,3),1];
+T0=[R0_body2I,r0;zeros(1,3),1];
 
 %--- Forward kinematics recursion ---%
 
@@ -107,14 +97,14 @@ end
 %--- Rotation matrices, translation, position and other geometric quantities ---%
 
 %Pre-allocate rotation matrices, translation and positions
-RJ=zeros(3,3,n,'like',R0);
-RL=zeros(3,3,n,'like',R0);
-rJ=zeros(3,n,'like',R0);
-rL=zeros(3,n,'like',R0);
+RJ=zeros(3,3,n,'like',R0_body2I);
+RL=zeros(3,3,n,'like',R0_body2I);
+rJ=zeros(3,n,'like',R0_body2I);
+rL=zeros(3,n,'like',R0_body2I);
 %Pre-allocate rotation/sliding axis
-e=zeros(3,n,'like',R0);
+e=zeros(3,n,'like',R0_body2I);
 %Pre-allocate other geometric quantities
-g=zeros(3,n,'like',R0);
+g=zeros(3,n,'like',R0_body2I);
 
 %Format rotation matrices, link positions, joint axis and other geometric
 %quantities
