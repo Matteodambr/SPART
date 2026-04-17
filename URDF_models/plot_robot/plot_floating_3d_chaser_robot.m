@@ -1,13 +1,21 @@
-function plot_floating_3d_chaser_robot(R0_I2body, r0, qm, robot_matlab, color, linestyle)
+function plot_floating_3d_chaser_robot(R0_I2body, r0, qm, robot_matlab, color, linestyle, urdf_path)
 % PLOT_FLOATING_3D_CHASER_ROBOT  Visualize the 3D floating-base space robot.
 %
 %   Inputs:
 %       R0_I2body    - 3x3 DCM (inertial-to-body) of the spacecraft base
 %       r0           - 3x1 or 1x3 base position in inertial frame [m]
 %       qm           - Nx1 joint angles [rad]
-%       robot_matlab - MATLAB rigidBodyTree loaded from ChaserRobot.urdf
+%       robot_matlab - MATLAB rigidBodyTree loaded from floating_7dof_manipulator.urdf
 %       color        - 1x3 RGB color for links and base wireframe
 %       linestyle    - Line style string (e.g. '-', '--')
+%       urdf_path    - (optional) full path to the URDF file; auto-detected if omitted
+
+if nargin < 7 || isempty(urdf_path)
+    urdf_path = which('floating_7dof_manipulator.urdf') ;
+    if isempty(urdf_path)
+        urdf_path = which('ChaserRobot.urdf') ;   % legacy fallback
+    end
+end
 
 r0 = r0(:) ;    % ensure column
 qm = qm(:) ;    % ensure column
@@ -27,7 +35,6 @@ T_base(1:3, 4)   = r0 ;
 % Parse the URDF XML directly to read the base inertial properties, then
 % recover box half-dims assuming a solid rectangular box:
 %   Ixx = m(b²+c²)/3,  Iyy = m(a²+c²)/3,  Izz = m(a²+b²)/3
-urdf_path = which('ChaserRobot.urdf') ;
 [m_base, Ixx, Iyy, Izz] = parse_urdf_base_inertia(urdf_path, robot_matlab.BaseName) ;
 a = sqrt(max(0, (Iyy + Izz - Ixx) * 3 / (2 * m_base))) ;  % x half-dim
 b = sqrt(max(0, (Ixx + Izz - Iyy) * 3 / (2 * m_base))) ;  % y half-dim
