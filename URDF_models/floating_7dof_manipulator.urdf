@@ -46,6 +46,7 @@
     <child link="Link_1"/>
     <origin rpy="3.1416 -1.570796 0" xyz="1.5 0 0"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
   
 
@@ -85,6 +86,7 @@
     <child link="Link_2"/>
     <origin rpy="-1.570796 0 0" xyz="0 0.084 0.256"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
   <!-- Link 2 -->
@@ -135,6 +137,7 @@
     <child link="Link_3"/>
     <origin rpy="1.5708 3.1416 0" xyz="0 -1.774 0.084"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
   <!-- Link 3 -->
@@ -172,6 +175,7 @@
     <child link="Link_4"/>
     <origin rpy="-1.5708 0 0" xyz="0 0.084 0.126"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
     <!-- Link 4 -->
@@ -222,6 +226,7 @@
     <child link="Link_5"/>
     <origin rpy="1.5708 3.1416 0" xyz="0 -1.604 0.084"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
     <!-- Link 5 -->
@@ -259,6 +264,7 @@
     <child link="Link_6"/>
     <origin rpy="1.5708 0 0" xyz="0 -0.084 0.126"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
     <!-- Link 6 -->
@@ -309,6 +315,7 @@
     <child link="Link_7"/>
     <origin rpy="-1.5708 0 0" xyz="0 0.126 0.084"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
   
   <!-- Link 7 -->
@@ -347,6 +354,7 @@
     <child link="Link_EE"/>
     <origin rpy="0 0 0" xyz="0 0 0.294"/>
     <axis xyz="0 0 1"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
     <!-- End-Effector -->
