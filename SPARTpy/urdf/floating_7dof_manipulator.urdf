@@ -81,12 +81,12 @@
   </link>
 
   <!-- Joint 2 -->
-  <joint name="Joint_2" type="revolute">
+  <joint name="Joint_2" type="continuous">
     <parent link="Link_1"/>
     <child link="Link_2"/>
     <origin rpy="-1.570796 0 0" xyz="0 0.084 0.256"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-3.14159" upper="-0.17453" effort="1e9" velocity="1e9"/>
+    <limit effort="1e9" velocity="1e9"/>
   </joint>
 
   <!-- Link 2 -->
